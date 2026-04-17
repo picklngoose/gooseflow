@@ -127,7 +127,7 @@ export default function App() {
           <svg
             ref={svgRef}
             className={styles.lineOverlay}
-            style={{ pointerEvents: drawingMode ? 'none' : 'auto' }}
+            style={{ pointerEvents: 'none' }}
           >
             <defs>
               <marker id="arrowAff" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
@@ -160,7 +160,7 @@ export default function App() {
                     fill="none"
                     stroke="transparent"
                     strokeWidth="12"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
                     onClick={() => removeConnection(conn.id)}
                     title="Click to remove"
                   />
