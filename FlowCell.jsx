@@ -2,7 +2,7 @@ import { useRef, useCallback, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
 export const FlowCell = forwardRef(function FlowCell(
-  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, isPending, onKnobClick },
+  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, onKnobClick },
   ref
 ) {
   const textRef = useRef(null)
@@ -27,13 +27,14 @@ export const FlowCell = forwardRef(function FlowCell(
 
   const handleKnobClick = useCallback((e) => {
     e.stopPropagation()
+    e.preventDefault()
     if (onKnobClick) onKnobClick()
   }, [onKnobClick])
 
   return (
     <div
       ref={ref}
-      className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''} ${isPending && !isSelected ? styles.connectable : ''}`}
+      className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
     >
       <textarea
         ref={textRef}
@@ -44,10 +45,16 @@ export const FlowCell = forwardRef(function FlowCell(
         rows={1}
         className={styles.textarea}
       />
-      <button className={styles.deleteBtn} onClick={onDelete} title="Delete">×</button>
+      <button
+        className={styles.deleteBtn}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onDelete}
+        title="Delete"
+      >×</button>
       {onKnobClick && (
         <button
           className={`${styles.knob} ${isSelected ? styles.knobActive : ''}`}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={handleKnobClick}
           title={isSelected ? 'Deselect' : 'Connect to another argument'}
         />
