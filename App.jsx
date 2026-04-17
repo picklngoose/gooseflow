@@ -36,11 +36,11 @@ export default function App() {
     }
   }, [])
 
-  // Re-render connection lines after flow switch — cell DOM refs need one tick to populate
+  // Re-render connection lines after flow or view switch — cell DOM refs need one tick to populate
   useEffect(() => {
     const timer = setTimeout(() => forceUpdate(n => n + 1), 50)
     return () => clearTimeout(timer)
-  }, [activeFlowId])
+  }, [activeFlowId, activeSpeechId])
 
   // Exit drawing mode on Escape
   useEffect(() => {
@@ -153,15 +153,11 @@ export default function App() {
             if (drawingMode && e.target === flowBoardRef.current) setSelectedCells([])
           }}
         >
-          {/* SVG overlay for connection lines */}
-          <svg
-            ref={svgRef}
-            className={styles.lineOverlay}
-            style={{ pointerEvents: drawingMode ? 'none' : 'none' }}
-          >
+          {/* SVG overlay — only rendered in all-speeches view */}
+          {activeSpeechId === 'all' && <svg ref={svgRef} className={styles.lineOverlay} style={{ pointerEvents: 'none' }}>
             <defs>
               <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-                <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-purple)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
               </marker>
             </defs>
             {activeFlow.connections.map(conn => {
@@ -172,31 +168,14 @@ export default function App() {
               const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
               return (
                 <g key={conn.id}>
-                  <path
-                    d={d}
-                    fill="none"
-                    stroke="var(--accent-purple)"
-                    strokeWidth="1.5"
-                    strokeDasharray="5 4"
-                    opacity="0.55"
-                    markerEnd="url(#arrowConn)"
-                  />
-                  {/* Delete hit area — only active in connect mode */}
+                  <path d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)" />
                   {drawingMode && (
-                    <path
-                      d={d}
-                      fill="none"
-                      stroke="transparent"
-                      strokeWidth="14"
-                      style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
-                      onClick={(e) => { e.stopPropagation(); removeConnection(conn.id) }}
-                      title="Click to remove"
-                    />
+                    <path d={d} fill="none" stroke="transparent" strokeWidth="14" style={{ cursor: 'pointer', pointerEvents: 'stroke' }} onClick={(e) => { e.stopPropagation(); removeConnection(conn.id) }} title="Click to remove" />
                   )}
                 </g>
               )
             })}
-          </svg>
+          </svg>}
 
           {speeches.map(speech => (
             <SpeechColumn
