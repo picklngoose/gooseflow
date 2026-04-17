@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useDebateFlow } from './useDebateFlow'
+import { useDebateFlow } from './useDebateFlow.jsx'
 import { Sidebar } from './Sidebar'
 import { SpeechColumn } from './SpeechColumn'
 import styles from './App.module.css'
