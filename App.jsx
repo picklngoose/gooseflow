@@ -161,7 +161,7 @@ export default function App() {
           >
             <defs>
               <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-                <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-purple)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
               </marker>
             </defs>
             {activeFlow.connections.map(conn => {
@@ -175,9 +175,10 @@ export default function App() {
                   <path
                     d={d}
                     fill="none"
-                    stroke="var(--accent-yellow)"
-                    strokeWidth="2"
-                    opacity="0.85"
+                    stroke="var(--accent-purple)"
+                    strokeWidth="1.5"
+                    strokeDasharray="5 4"
+                    opacity="0.55"
                     markerEnd="url(#arrowConn)"
                   />
                   {/* Delete hit area — only active in connect mode */}
