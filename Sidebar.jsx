@@ -84,22 +84,24 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className={`${styles.section} ${styles.speechNav}`}>
-        <div className={styles.sectionLabel}>Speeches</div>
-        <div className={styles.speeches}>
-          {SPEECH_ORDER.map(s => (
-            <button
-              key={s.id}
-              className={`${styles.speechBtn} ${styles[s.side]} ${s.id === activeSpeechId ? styles.activeSpeech : ''}`}
-              onClick={() => onSelectSpeech(s.id)}
-              title={s.description}
-            >
-              <span className={styles.speechLabel}>{s.label}</span>
-              <span className={styles.speechTime}>{s.time / 60}m</span>
-            </button>
-          ))}
+      {activeSpeechId !== 'all' && (
+        <div className={`${styles.section} ${styles.speechNav}`}>
+          <div className={styles.sectionLabel}>Speeches</div>
+          <div className={styles.speeches}>
+            {SPEECH_ORDER.map(s => (
+              <button
+                key={s.id}
+                className={`${styles.speechBtn} ${styles[s.side]} ${s.id === activeSpeechId ? styles.activeSpeech : ''}`}
+                onClick={() => onSelectSpeech(s.id)}
+                title={s.description}
+              >
+                <span className={styles.speechLabel}>{s.label}</span>
+                <span className={styles.speechTime}>{s.time / 60}m</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.footer}>
         <button className={styles.exportBtn} onClick={onExport}>↓ export</button>
