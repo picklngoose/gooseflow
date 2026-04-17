@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PrepTimer } from './Timer'
 import styles from './Sidebar.module.css'
-import { SPEECH_ORDER } from '../hooks/useDebateFlow'
+import { SPEECH_ORDER } from './useDebateFlow'
 
 export function Sidebar({
   flows,

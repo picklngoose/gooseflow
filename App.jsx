@@ -1,6 +1,6 @@
-import { useDebateFlow } from './hooks/useDebateFlow'
-import { Sidebar } from './components/Sidebar'
-import { SpeechColumn } from './components/SpeechColumn'
+import { useDebateFlow } from './useDebateFlow'
+import { Sidebar } from './Sidebar'
+import { SpeechColumn } from './SpeechColumn'
 import styles from './App.module.css'
 
 export default function App() {
