@@ -44,13 +44,16 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const handleCellClick = useCallback((cellId) => {
+  const handleCellClick = useCallback((speechId, cellId) => {
     if (!selectedCellId) {
-      setSelectedCellId(cellId)
-    } else if (selectedCellId === cellId) {
+      setSelectedCellId({ speechId, cellId })
+    } else if (selectedCellId.cellId === cellId) {
       setSelectedCellId(null)
+    } else if (selectedCellId.speechId === speechId) {
+      // same speech — don't connect
+      setSelectedCellId({ speechId, cellId })
     } else {
-      addConnection(selectedCellId, cellId)
+      addConnection(selectedCellId.cellId, cellId)
       setSelectedCellId(null)
     }
   }, [selectedCellId, addConnection])
@@ -110,11 +113,13 @@ export default function App() {
               className={`${styles.viewBtn} ${activeSpeechId !== 'all' ? styles.activeView : ''}`}
               onClick={() => { if (activeSpeechId === 'all') setActiveSpeechId('1ac') }}
             >Single</button>
-            <button
-              className={`${styles.viewBtn} ${drawingMode ? styles.drawActive : ''}`}
-              onClick={() => { setDrawingMode(d => !d); setSelectedCellId(null) }}
-              title="Draw connection lines between arguments (Esc to exit)"
-            >{drawingMode ? 'done' : 'connect'}</button>
+            {activeSpeechId === 'all' && (
+              <button
+                className={`${styles.viewBtn} ${drawingMode ? styles.drawActive : ''}`}
+                onClick={() => { setDrawingMode(d => !d); setSelectedCellId(null) }}
+                title="Draw connection lines between arguments (Esc to exit)"
+              >{drawingMode ? 'done' : 'connect'}</button>
+            )}
           </div>
         </div>
 
