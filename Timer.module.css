@@ -1,0 +1,94 @@
+.timer {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  min-width: 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timer.prep {
+  opacity: 0.8;
+  min-width: 130px;
+}
+
+.label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+}
+
+.time {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-0);
+  transition: color 0.3s;
+}
+
+.timer.aff .time { color: var(--accent-aff); }
+.timer.neg .time { color: var(--accent-neg); }
+
+.timer.over .time {
+  color: var(--accent-yellow) !important;
+  animation: pulse 1s infinite;
+}
+
+.timer.low .time {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.bar {
+  height: 3px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  transition: width 0.5s linear, background 0.3s;
+  border-radius: 2px;
+}
+
+.timer.aff .fill { background: var(--accent-aff); }
+.timer.neg .fill { background: var(--accent-neg); }
+.timer.prep .fill { background: var(--accent-blue); }
+.timer.over .fill { background: var(--accent-yellow); }
+.timer.low .fill { background: var(--accent-yellow); }
+
+.controls {
+  display: flex;
+  gap: 4px;
+}
+
+.btn {
+  flex: 1;
+  padding: 3px 0;
+  font-size: 11px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  transition: all 0.15s;
+}
+
+.btn:hover {
+  border-color: var(--border-bright);
+  color: var(--text-0);
+}
+
+.btn.start { color: var(--accent-aff); }
+.btn.stop { color: var(--accent-neg); }
+
+.timer.neg .btn.start { color: var(--accent-neg); }
