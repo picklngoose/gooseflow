@@ -22,7 +22,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, dr
             onAddBelow={() => onAddCell(speech.id)}
             drawingMode={drawingMode}
             isSelected={selectedCellId === cell.id}
-            onClick={() => onCellClick && onCellClick(cell.id)}
+            onClick={() => onCellClick && onCellClick(speech.id, cell.id)}
             ref={(el) => {
               if (el) cellRefsMap.current.set(cell.id, el)
               else cellRefsMap.current.delete(cell.id)
