@@ -8,22 +8,15 @@ function formatTime(seconds) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
-export function Timer({ duration, label, side }) {
+export function Timer({ duration, side }) {
   const [remaining, setRemaining] = useState(duration)
   const [running, setRunning] = useState(false)
   const intervalRef = useRef(null)
 
-  useEffect(() => {
-    setRemaining(duration)
-    setRunning(false)
-  }, [duration, label])
+  useEffect(() => { setRemaining(duration); setRunning(false) }, [duration])
 
   useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => {
-        setRemaining(r => r - 1)
-      }, 1000)
-    }
+    if (running) intervalRef.current = setInterval(() => setRemaining(r => r - 1), 1000)
     return () => clearInterval(intervalRef.current)
   }, [running])
 
@@ -36,15 +29,12 @@ export function Timer({ duration, label, side }) {
 
   return (
     <div className={`${styles.timer} ${styles[side]} ${over ? styles.over : ''} ${low ? styles.low : ''}`}>
-      <div className={styles.label}>{label}</div>
       <div className={styles.time}>{over ? '-' : ''}{formatTime(remaining)}</div>
       <div className={styles.bar}>
         <div className={styles.fill} style={{ width: `${pct * 100}%` }} />
       </div>
       <div className={styles.controls}>
-        <button onClick={toggle} className={`${styles.btn} ${running ? styles.stop : styles.start}`}>
-          {running ? '⏸' : '▶'}
-        </button>
+        <button onClick={toggle} className={styles.btn}>{running ? '⏸' : '▶'}</button>
         <button onClick={reset} className={styles.btn}>↺</button>
       </div>
     </div>
@@ -52,36 +42,30 @@ export function Timer({ duration, label, side }) {
 }
 
 export function PrepTimer({ side, label }) {
-  const [remaining, setRemaining] = useState(480)
+  const [remaining, setRemaining] = useState(300)
   const [running, setRunning] = useState(false)
   const intervalRef = useRef(null)
 
   useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => {
-        setRemaining(r => Math.max(0, r - 1))
-      }, 1000)
-    }
+    if (running) intervalRef.current = setInterval(() => setRemaining(r => Math.max(0, r - 1)), 1000)
     return () => clearInterval(intervalRef.current)
   }, [running])
 
   const toggle = useCallback(() => setRunning(r => !r), [])
-  const reset = useCallback(() => { setRemaining(480); setRunning(false) }, [])
+  const reset = useCallback(() => { setRemaining(300); setRunning(false) }, [])
 
-  const pct = remaining / 480
+  const pct = remaining / 300
   const low = remaining <= 60
 
   return (
-    <div className={`${styles.timer} ${styles.prep} ${styles[side]} ${low ? styles.low : ''}`}>
+    <div className={`${styles.timer} ${styles.prep} ${low ? styles.low : ''}`}>
       <div className={styles.label}>{label} PREP</div>
       <div className={styles.time}>{formatTime(remaining)}</div>
       <div className={styles.bar}>
         <div className={styles.fill} style={{ width: `${pct * 100}%` }} />
       </div>
       <div className={styles.controls}>
-        <button onClick={toggle} className={`${styles.btn} ${running ? styles.stop : styles.start}`}>
-          {running ? '⏸' : '▶'}
-        </button>
+        <button onClick={toggle} className={styles.btn}>{running ? '⏸' : '▶'}</button>
         <button onClick={reset} className={styles.btn}>↺</button>
       </div>
     </div>
