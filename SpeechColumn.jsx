@@ -2,7 +2,7 @@ import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, pendingCellIds, isPending, onKnobClick, cellRefsMap, showKnobs }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, pendingCellIds, onKnobClick, cellRefsMap }) {
   return (
     <div className={`${styles.column} ${styles[speech.side]}`}>
       <div className={styles.header}>
@@ -21,8 +21,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, pe
             onDelete={() => onDeleteCell(speech.id, cell.id)}
             onAddBelow={() => onAddCell(speech.id)}
             isSelected={pendingCellIds ? pendingCellIds.has(cell.id) : false}
-            isPending={isPending}
-            onKnobClick={showKnobs ? () => onKnobClick(speech.id, cell.id) : null}
+            onKnobClick={onKnobClick ? () => onKnobClick(speech.id, cell.id) : null}
             ref={(el) => {
               if (el) cellRefsMap.current.set(cell.id, el)
               else cellRefsMap.current.delete(cell.id)
