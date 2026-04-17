@@ -2,7 +2,7 @@ import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, drawingMode, selectedCellId, onCellClick, cellRefsMap }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, drawingMode, selectedCellIds, onCellClick, cellRefsMap }) {
   return (
     <div className={`${styles.column} ${styles[speech.side]}`}>
       <div className={styles.header}>
@@ -21,7 +21,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, dr
             onDelete={() => onDeleteCell(speech.id, cell.id)}
             onAddBelow={() => onAddCell(speech.id)}
             drawingMode={drawingMode}
-            isSelected={selectedCellId === cell.id}
+            isSelected={selectedCellIds ? selectedCellIds.has(cell.id) : false}
             onClick={() => onCellClick && onCellClick(speech.id, cell.id)}
             ref={(el) => {
               if (el) cellRefsMap.current.set(cell.id, el)
