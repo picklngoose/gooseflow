@@ -22,19 +22,15 @@
   border-left: 2px solid var(--accent-neg-dim);
 }
 
-.cell.drawable {
-  cursor: crosshair;
-}
-
-.cell.drawable:hover {
-  border-color: var(--border-bright);
-  background: var(--bg-2);
-}
-
 .cell.selected {
   border-color: var(--accent-yellow) !important;
   background: #1a1506 !important;
   box-shadow: 0 0 0 1px var(--accent-yellow);
+}
+
+/* When a connection is pending but this cell is not the source, subtly dim it */
+.cell.connectable {
+  opacity: 0.7;
 }
 
 .textarea {
@@ -68,4 +64,38 @@
 
 .deleteBtn:hover {
   color: var(--accent-neg);
+}
+
+/* Connect knob */
+.knob {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  border: 1.5px solid var(--border-bright);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+  cursor: crosshair;
+  z-index: 10;
+  padding: 0;
+}
+
+.cell:hover .knob {
+  opacity: 1;
+}
+
+.knob:hover {
+  background: var(--accent-yellow);
+  border-color: var(--accent-yellow);
+}
+
+.knob.knobActive {
+  opacity: 1;
+  background: var(--accent-yellow);
+  border-color: var(--accent-yellow);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.3);
 }
