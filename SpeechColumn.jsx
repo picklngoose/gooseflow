@@ -2,27 +2,20 @@ import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onCellClick }) {
-  const isCX = speech.type === 'cx'
-  
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell }) {
   return (
-    <div className={`${styles.column} ${styles[speech.side]} ${isCX ? styles.cx : ''}`}>
+    <div className={`${styles.column} ${styles[speech.side]}`}>
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <span className={`${styles.label} ${styles[speech.side]}`}>{speech.label}</span>
-          <span className={`${styles.side} ${styles[speech.side]}`}>
-            {speech.side.toUpperCase()}
-          </span>
+          <span className={`${styles.side} ${styles[speech.side]}`}>{speech.side.toUpperCase()}</span>
         </div>
-        <div className={styles.desc}>{speech.description}</div>
-        {!isCX && (
-          <Timer
-            key={speech.id}
-            duration={speech.time}
-            label={speech.label}
-            side={speech.side}
-          />
-        )}
+        <Timer
+          key={speech.id}
+          duration={speech.time}
+          label={speech.label}
+          side={speech.side}
+        />
       </div>
 
       <div className={styles.cells}>
@@ -35,11 +28,10 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
             onUpdate={(updates) => onUpdateCell(speech.id, cell.id, updates)}
             onDelete={() => onDeleteCell(speech.id, cell.id)}
             onAddBelow={() => onAddCell(speech.id)}
-            onClick={() => onCellClick && onCellClick(speech.id, cell.id)}
           />
         ))}
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>
-          + add argument
+          + add
         </button>
       </div>
     </div>
