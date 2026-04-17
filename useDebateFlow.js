@@ -11,7 +11,9 @@ export const SPEECH_ORDER = [
   { id: '2ar', label: '2AR', side: 'aff', type: 'rebuttal', time: 240, description: '2nd Affirmative Rebuttal' },
 ]
 
-const createCell = (id) => ({ id, content: '', tags: [] })
+const VALID_SPEECH_IDS = new Set(SPEECH_ORDER.map(s => s.id))
+
+const createCell = (id) => ({ id, content: '' })
 
 const createSpeech = (speechDef) => ({
   ...speechDef,
@@ -22,14 +24,23 @@ const createFlow = (id) => ({
   id,
   name: 'New Flow',
   speeches: SPEECH_ORDER.map(createSpeech),
+  connections: [],
   createdAt: Date.now(),
+})
+
+const migrateFlow = (flow) => ({
+  ...flow,
+  connections: flow.connections || [],
+  speeches: flow.speeches
+    .filter(s => VALID_SPEECH_IDS.has(s.id))
+    .map(s => ({ ...s, cells: s.cells.map(c => ({ id: c.id, content: c.content || '' })) })),
 })
 
 export function useDebateFlow() {
   const [flows, setFlows] = useState(() => {
     try {
       const saved = localStorage.getItem('debate-flows')
-      if (saved) return JSON.parse(saved)
+      if (saved) return JSON.parse(saved).map(migrateFlow)
     } catch {}
     return [createFlow('flow-1')]
   })
@@ -117,12 +128,33 @@ export function useDebateFlow() {
       if (f.id !== activeFlowId) return f
       return {
         ...f,
+        connections: f.connections.filter(c => c.fromCellId !== cellId && c.toCellId !== cellId),
         speeches: f.speeches.map(s => {
           if (s.id !== speechId) return s
           if (s.cells.length <= 1) return s
           return { ...s, cells: s.cells.filter(c => c.id !== cellId) }
         })
       }
+    }))
+  }, [activeFlowId, updateFlows])
+
+  const addConnection = useCallback((fromCellId, toCellId) => {
+    updateFlows(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      // prevent duplicates
+      const exists = f.connections.some(c => c.fromCellId === fromCellId && c.toCellId === toCellId)
+      if (exists) return f
+      return {
+        ...f,
+        connections: [...f.connections, { id: `conn-${Date.now()}`, fromCellId, toCellId }]
+      }
+    }))
+  }, [activeFlowId, updateFlows])
+
+  const removeConnection = useCallback((connId) => {
+    updateFlows(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      return { ...f, connections: f.connections.filter(c => c.id !== connId) }
     }))
   }, [activeFlowId, updateFlows])
 
@@ -136,8 +168,7 @@ export function useDebateFlow() {
       lines.push(`\n[${speech.label}] ${speech.description}`)
       lines.push('-'.repeat(40))
       speech.cells.forEach((cell, i) => {
-        const tags = cell.tags.length ? ` [${cell.tags.join(', ')}]` : ''
-        lines.push(`${i + 1}.${tags}`)
+        lines.push(`${i + 1}.`)
         if (cell.content) lines.push(`   ${cell.content.replace(/\n/g, '\n   ')}`)
       })
     })
@@ -156,6 +187,7 @@ export function useDebateFlow() {
     setActiveSpeechId,
     addFlow, deleteFlow, renameFlow,
     updateCell, addCell, deleteCell,
+    addConnection, removeConnection,
     exportFlow,
   }
 }
