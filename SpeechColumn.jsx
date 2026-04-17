@@ -6,11 +6,8 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, dr
   return (
     <div className={`${styles.column} ${styles[speech.side]}`}>
       <div className={styles.header}>
-        <div className={styles.headerTop}>
-          <span className={`${styles.label} ${styles[speech.side]}`}>{speech.label}</span>
-          <span className={`${styles.side} ${styles[speech.side]}`}>{speech.side.toUpperCase()}</span>
-        </div>
-        <Timer key={speech.id} duration={speech.time} label={speech.label} side={speech.side} />
+        <span className={`${styles.label} ${styles[speech.side]}`}>{speech.label}</span>
+        <Timer key={speech.id} duration={speech.time} side={speech.side} />
       </div>
 
       <div className={styles.cells}>
