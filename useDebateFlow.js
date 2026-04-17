@@ -205,6 +205,8 @@ export function useDebateFlow() {
       return { ...f, connections: f.connections.filter(c => c.id !== connectionId) }
     }))
   }, [activeFlowId, updateFlows])
+
+  return {
     flows,
     activeFlow,
     activeFlowId,
