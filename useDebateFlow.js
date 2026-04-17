@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 
 // Policy debate speech order
 export const SPEECH_ORDER = [
