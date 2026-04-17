@@ -1,6 +1,4 @@
-import React, { useState } from 'react'
-
-// Force rebuild
+import { useState, useCallback } from 'react'
 
 // Policy debate speech order
 export const SPEECH_ORDER = [
@@ -193,20 +191,20 @@ export function useDebateFlow() {
     URL.revokeObjectURL(url)
   }, [activeFlow])
 
-  const addConnection = (fromSpeechId, fromCellId, toSpeechId, toCellId) => {
+  const addConnection = useCallback((fromSpeechId, fromCellId, toSpeechId, toCellId) => {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
       const newConnection = { id: `${Date.now()}`, from: { speechId: fromSpeechId, cellId: fromCellId }, to: { speechId: toSpeechId, cellId: toCellId } }
       return { ...f, connections: [...f.connections, newConnection] }
     }))
-  }
+  }, [activeFlowId, updateFlows])
 
-  const removeConnection = (connectionId) => {
+  const removeConnection = useCallback((connectionId) => {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
       return { ...f, connections: f.connections.filter(c => c.id !== connectionId) }
     }))
-  }
+  }, [activeFlowId, updateFlows])
 
   return {
     flows,
