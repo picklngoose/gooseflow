@@ -14,8 +14,10 @@ export default function App() {
     exportFlow,
   } = useDebateFlow()
 
-  // pendingFrom: array of { speechId, cellId } — cells whose knob has been clicked
+  // pendingFrom: array of { speechId, cellId } — knobs that have been clicked as source
   const [pendingFrom, setPendingFrom] = useState([])
+  // live cursor position for the in-progress line
+  const [cursor, setCursor] = useState(null)
   const [, forceUpdate] = useState(0)
 
   const cellRefsMap = useRef(new Map())
@@ -41,17 +43,28 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [activeFlowId, activeSpeechId])
 
-  // Cancel pending on Escape
+  // Track mouse position for live cursor line, cancel on Escape
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') setPendingFrom([]) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
+    const onMove = (e) => {
+      if (pendingFrom.length === 0) return
+      const svgEl = svgRef.current
+      if (!svgEl) return
+      const rect = svgEl.getBoundingClientRect()
+      setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [pendingFrom.length])
 
-  // Clicking the connect knob on a cell
   const handleKnobClick = useCallback((speechId, cellId) => {
     if (pendingFrom.length === 0) {
-      // Start: select this cell as source
       setPendingFrom([{ speechId, cellId }])
       return
     }
@@ -59,10 +72,12 @@ export default function App() {
     const fromSpeechId = pendingFrom[0].speechId
 
     if (speechId === fromSpeechId) {
-      // Same speech — toggle in/out of the source group
+      // Same speech — toggle in/out of source group
       const already = pendingFrom.some(p => p.cellId === cellId)
       if (already) {
-        setPendingFrom(prev => prev.filter(p => p.cellId !== cellId))
+        const next = pendingFrom.filter(p => p.cellId !== cellId)
+        setPendingFrom(next)
+        if (next.length === 0) setCursor(null)
       } else {
         setPendingFrom(prev => [...prev, { speechId, cellId }])
       }
@@ -72,6 +87,7 @@ export default function App() {
     // Different speech — fire all connections and clear
     pendingFrom.forEach(src => addConnection(src.cellId, cellId))
     setPendingFrom([])
+    setCursor(null)
   }, [pendingFrom, addConnection])
 
   const getLineCoords = useCallback((fromCellId, toCellId) => {
@@ -90,9 +106,22 @@ export default function App() {
     }
   }, [])
 
+  const getKnobCoords = useCallback((cellId) => {
+    const el = cellRefsMap.current.get(cellId)
+    const svgEl = svgRef.current
+    if (!el || !svgEl) return null
+    const svgRect = svgEl.getBoundingClientRect()
+    const rect = el.getBoundingClientRect()
+    return {
+      x: rect.right - svgRect.left,
+      y: rect.top + rect.height / 2 - svgRect.top,
+    }
+  }, [])
+
   if (!activeFlow) return null
 
-  const speeches = activeSpeechId === 'all'
+  const showAll = activeSpeechId === 'all'
+  const speeches = showAll
     ? activeFlow.speeches
     : activeFlow.speeches.filter(s => s.id === activeSpeechId)
 
@@ -123,12 +152,12 @@ export default function App() {
           </div>
           <div className={styles.viewToggle}>
             <button
-              className={`${styles.viewBtn} ${activeSpeechId === 'all' ? styles.activeView : ''}`}
+              className={`${styles.viewBtn} ${showAll ? styles.activeView : ''}`}
               onClick={() => setActiveSpeechId('all')}
             >All</button>
             <button
-              className={`${styles.viewBtn} ${activeSpeechId !== 'all' ? styles.activeView : ''}`}
-              onClick={() => { if (activeSpeechId === 'all') setActiveSpeechId('1ac') }}
+              className={`${styles.viewBtn} ${!showAll ? styles.activeView : ''}`}
+              onClick={() => { if (showAll) setActiveSpeechId('1ac') }}
             >Single</button>
           </div>
         </div>
@@ -136,16 +165,23 @@ export default function App() {
         <div
           ref={flowBoardRef}
           className={styles.flowBoard}
-          onClick={(e) => { if (e.target === flowBoardRef.current) setPendingFrom([]) }}
+          onClick={(e) => {
+            if (e.target === flowBoardRef.current) { setPendingFrom([]); setCursor(null) }
+          }}
         >
           {/* SVG overlay — only in all-speeches view */}
-          {activeSpeechId === 'all' && (
-            <svg ref={svgRef} className={styles.lineOverlay}>
+          {showAll && (
+            <svg ref={svgRef} className={styles.lineOverlay} style={{ pointerEvents: 'none' }}>
               <defs>
                 <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                   <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </marker>
+                <marker id="arrowDraft" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </marker>
               </defs>
+
+              {/* Committed connections */}
               {activeFlow.connections.map(conn => {
                 const coords = getLineCoords(conn.fromCellId, conn.toCellId)
                 if (!coords) return null
@@ -153,18 +189,31 @@ export default function App() {
                 const cx = (x1 + x2) / 2
                 const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
                 return (
-                  <g key={conn.id}>
-                    <path d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)" />
-                    {/* Always-active hit area to delete by clicking the line */}
-                    <path
-                      d={d}
-                      fill="none"
-                      stroke="transparent"
-                      strokeWidth="14"
-                      style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
-                      onClick={() => removeConnection(conn.id)}
-                    />
+                  <g key={conn.id} style={{ pointerEvents: 'stroke' }}>
+                    <path d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)" style={{ pointerEvents: 'none' }} />
+                    {/* Wide transparent hit area to click-delete */}
+                    <path d={d} fill="none" stroke="transparent" strokeWidth="14" style={{ cursor: 'pointer', pointerEvents: 'stroke' }} onClick={() => removeConnection(conn.id)} />
                   </g>
+                )
+              })}
+
+              {/* Live draft lines from pending sources to cursor */}
+              {isPending && cursor && pendingFrom.map(src => {
+                const from = getKnobCoords(src.cellId)
+                if (!from) return null
+                const cx = (from.x + cursor.x) / 2
+                const d = `M ${from.x} ${from.y} C ${cx} ${from.y}, ${cx} ${cursor.y}, ${cursor.x} ${cursor.y}`
+                return (
+                  <path
+                    key={`draft-${src.cellId}`}
+                    d={d}
+                    fill="none"
+                    stroke="var(--accent-yellow)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                    opacity="0.35"
+                    markerEnd="url(#arrowDraft)"
+                  />
                 )
               })}
             </svg>
@@ -178,19 +227,17 @@ export default function App() {
               onAddCell={addCell}
               onDeleteCell={deleteCell}
               pendingCellIds={pendingCellIds}
-              isPending={isPending}
-              onKnobClick={handleKnobClick}
+              onKnobClick={showAll ? handleKnobClick : null}
               cellRefsMap={cellRefsMap}
-              showKnobs={activeSpeechId === 'all'}
             />
           ))}
         </div>
 
-        {isPending && activeSpeechId === 'all' && (
+        {isPending && showAll && (
           <div className={styles.drawHint}>
             {pendingFrom.length === 1
-              ? 'click knob on another speech to connect, or more knobs here to group · Esc to cancel'
-              : `${pendingFrom.length} selected · click knob in another speech to connect all · Esc to cancel`}
+              ? 'click a knob on another speech to connect · click more knobs here to group · Esc to cancel'
+              : `${pendingFrom.length} grouped · click a knob in another speech to connect all · Esc to cancel`}
           </div>
         )}
       </main>
