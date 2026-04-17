@@ -1,6 +1,6 @@
 .column {
-  min-width: 240px;
-  max-width: 300px;
+  min-width: 220px;
+  max-width: 280px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -8,17 +8,11 @@
   height: 100%;
 }
 
-.column.cx {
-  min-width: 180px;
-  max-width: 220px;
-  opacity: 0.8;
-}
-
 .header {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -33,7 +27,7 @@
 
 .label {
   font-family: var(--font-mono);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -43,9 +37,9 @@
 
 .side {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 0.14em;
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 2px;
   font-weight: 600;
 }
@@ -62,13 +56,6 @@
   border: 1px solid var(--accent-neg-dim);
 }
 
-.desc {
-  font-size: 10px;
-  color: var(--text-2);
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
-}
-
 .cells {
   display: flex;
   flex-direction: column;
@@ -81,7 +68,7 @@
 .addCell {
   font-family: var(--font-mono);
   font-size: 10px;
-  padding: 6px;
+  padding: 5px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   color: var(--text-3);
