@@ -9,52 +9,23 @@
 }
 
 .header {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
-}
-
-.headerTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid var(--border);
 }
 
 .label {
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 .label.aff { color: var(--accent-aff); }
 .label.neg { color: var(--accent-neg); }
-
-.side {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.14em;
-  padding: 2px 5px;
-  border-radius: 2px;
-  font-weight: 600;
-}
-
-.side.aff {
-  background: var(--tag-green);
-  color: var(--accent-aff-dim);
-  border: 1px solid var(--accent-aff-dim);
-}
-
-.side.neg {
-  background: var(--tag-red);
-  color: var(--accent-neg-dim);
-  border: 1px solid var(--accent-neg-dim);
-}
 
 .cells {
   display: flex;
