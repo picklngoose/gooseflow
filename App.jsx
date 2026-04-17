@@ -44,7 +44,6 @@ export default function App() {
 
   return (
     <div className={styles.app}>
-      <h1 style={{color: 'white'}}>Hello World</h1>
       <Sidebar
         flows={flows}
         activeFlowId={activeFlowId}
