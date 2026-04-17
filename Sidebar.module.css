@@ -1,59 +1,221 @@
-.column {
-  min-width: 220px;
-  max-width: 280px;
-  flex: 1;
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  height: 100%;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.header {
+.logo {
+  padding: 14px 16px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: baseline;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  padding: 0 2px 6px;
+}
+
+.logoMark {
+  font-size: 16px;
+  color: var(--accent-aff);
+}
+
+.logoText {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+  color: var(--text-0);
+}
+
+.section {
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
 
-.label {
+.sectionLabel {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
   font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  margin-bottom: 6px;
 }
 
-.label.aff { color: var(--accent-aff); }
-.label.neg { color: var(--accent-neg); }
-
-.cells {
+.prepTimers {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: visible;
-  padding-bottom: 8px;
-  padding-right: 8px;
+  gap: 5px;
 }
 
-.addCell {
+.flows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.flowItem {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius);
+  background: transparent;
+  transition: background 0.15s;
+  border: 1px solid transparent;
+}
+
+.flowItem.active {
+  background: var(--bg-3);
+  border-color: var(--border);
+}
+
+.flowName {
+  flex: 1;
+  text-align: left;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.flowItem.active .flowName { color: var(--text-0); }
+.flowName:hover { color: var(--text-0); }
+
+.flowNameInput {
+  flex: 1;
+  padding: 4px 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  background: var(--bg-3);
+  border: 1px solid var(--accent-blue);
+  border-radius: var(--radius);
+  color: var(--text-0);
+  outline: none;
+}
+
+.flowActions {
+  display: flex;
+  gap: 2px;
+  padding-right: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.flowItem:hover .flowActions { opacity: 1; }
+.flowItem.active .flowActions { opacity: 1; }
+
+.flowAction {
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  color: var(--text-3);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.flowAction:hover { color: var(--text-0); background: var(--bg-3); }
+.flowAction.danger:hover { color: var(--accent-neg); }
+
+.addFlow {
+  margin-top: 3px;
+  padding: 4px 8px;
+  font-size: 11px;
   font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 5px;
+  color: var(--text-3);
   border: 1px dashed var(--border);
   border-radius: var(--radius);
-  color: var(--text-3);
-  background: transparent;
   text-align: center;
   transition: all 0.15s;
-  margin-top: 2px;
+  width: 100%;
 }
 
-.addCell:hover {
+.addFlow:hover {
   color: var(--text-1);
   border-color: var(--border-bright);
   border-style: solid;
+}
+
+.speechNav {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.speeches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.speechBtn {
+  padding: 5px 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   background: var(--bg-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.speechBtn:hover {
+  border-color: var(--border-bright);
+  background: var(--bg-3);
+}
+
+.speechBtn.aff.activeSpeech {
+  border-color: var(--accent-aff-dim);
+  background: var(--tag-green);
+}
+
+.speechBtn.neg.activeSpeech {
+  border-color: var(--accent-neg-dim);
+  background: var(--tag-red);
+}
+
+.speechLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.speechBtn.aff .speechLabel { color: var(--accent-aff); }
+.speechBtn.neg .speechLabel { color: var(--accent-neg); }
+
+.speechTime {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-3);
+}
+
+.footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.exportBtn {
+  width: 100%;
+  padding: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.exportBtn:hover {
+  color: var(--text-0);
+  border-color: var(--border-bright);
 }
