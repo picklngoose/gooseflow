@@ -4,10 +4,11 @@
   border-radius: var(--radius);
   display: flex;
   align-items: flex-start;
-  padding: 5px 6px 5px 8px;
+  padding: 5px 24px 5px 8px;
   gap: 4px;
   transition: border-color 0.15s;
   position: relative;
+  overflow: visible;
 }
 
 .cell:hover {
@@ -28,11 +29,6 @@
   box-shadow: 0 0 0 1px var(--accent-yellow);
 }
 
-/* When a connection is pending but this cell is not the source, subtly dim it */
-.cell.connectable {
-  opacity: 0.7;
-}
-
 .textarea {
   flex: 1;
   min-height: 32px;
@@ -40,10 +36,14 @@
   padding: 0;
   font-size: 12px;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .deleteBtn {
-  flex-shrink: 0;
+  position: absolute;
+  top: 4px;
+  right: 18px;
   width: 16px;
   height: 16px;
   font-size: 14px;
@@ -56,6 +56,7 @@
   transition: opacity 0.15s, color 0.15s;
   line-height: 1;
   padding-bottom: 1px;
+  z-index: 2;
 }
 
 .cell:hover .deleteBtn {
@@ -66,10 +67,10 @@
   color: var(--accent-neg);
 }
 
-/* Connect knob */
+/* Connect knob — sits on the right edge, outside the cell border */
 .knob {
   position: absolute;
-  right: -6px;
+  right: -5px;
   top: 50%;
   transform: translateY(-50%);
   width: 10px;
@@ -78,10 +79,11 @@
   background: var(--bg-3);
   border: 1.5px solid var(--border-bright);
   opacity: 0;
-  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
   cursor: crosshair;
-  z-index: 10;
+  z-index: 20;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .cell:hover .knob {
@@ -94,8 +96,8 @@
 }
 
 .knob.knobActive {
-  opacity: 1;
+  opacity: 1 !important;
   background: var(--accent-yellow);
   border-color: var(--accent-yellow);
-  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.25);
 }
