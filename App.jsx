@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useDebateFlow } from './useDebateFlow'
 import { Sidebar } from './Sidebar'
 import { SpeechColumn } from './SpeechColumn'
