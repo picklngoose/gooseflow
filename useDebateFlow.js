@@ -34,6 +34,7 @@ const createFlow = (id) => ({
   id,
   name: 'New Flow',
   speeches: SPEECH_ORDER.map(createSpeech),
+  connections: [],
   createdAt: Date.now(),
 })
 
@@ -188,9 +189,20 @@ export function useDebateFlow() {
     a.download = `${activeFlow.name.replace(/\s+/g, '-').toLowerCase()}-flow.txt`
     a.click()
     URL.revokeObjectURL(url)
-  }, [activeFlow])
+  const addConnection = useCallback((fromSpeechId, fromCellId, toSpeechId, toCellId) => {
+    updateFlows(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      const newConnection = { id: `${Date.now()}`, from: { speechId: fromSpeechId, cellId: fromCellId }, to: { speechId: toSpeechId, cellId: toCellId } }
+      return { ...f, connections: [...f.connections, newConnection] }
+    }))
+  }, [activeFlowId, updateFlows])
 
-  return {
+  const removeConnection = useCallback((connectionId) => {
+    updateFlows(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      return { ...f, connections: f.connections.filter(c => c.id !== connectionId) }
+    }))
+  }, [activeFlowId, updateFlows])
     flows,
     activeFlow,
     activeFlowId,
@@ -204,6 +216,8 @@ export function useDebateFlow() {
     addCell,
     deleteCell,
     toggleCellTag,
+    addConnection,
+    removeConnection,
     exportFlow,
   }
 }

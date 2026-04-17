@@ -10,7 +10,7 @@ const TAGS = [
   { id: 'cw', label: 'CW', title: 'Counterwarrant' },
 ]
 
-export function FlowCell({ cell, speechId, side, onUpdate, onDelete, onAddBelow }) {
+export function FlowCell({ cell, speechId, side, onUpdate, onDelete, onAddBelow, onClick }) {
   const textRef = useRef(null)
 
   const handleKey = useCallback((e) => {
@@ -43,7 +43,7 @@ export function FlowCell({ cell, speechId, side, onUpdate, onDelete, onAddBelow 
   const isTurn = cell.tags.includes('turn')
 
   return (
-    <div className={`${styles.cell} ${styles[side]} ${isDrop ? styles.dropped : ''} ${isTurn ? styles.turned : ''}`}>
+    <div className={`${styles.cell} ${styles[side]} ${isDrop ? styles.dropped : ''} ${isTurn ? styles.turned : ''}`} onClick={onClick}>
       <div className={styles.main}>
         <textarea
           ref={textRef}

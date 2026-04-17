@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useDebateFlow } from './useDebateFlow'
 import { Sidebar } from './Sidebar'
 import { SpeechColumn } from './SpeechColumn'
@@ -17,8 +18,27 @@ export default function App() {
     updateCell,
     addCell,
     deleteCell,
+    addConnection,
+    removeConnection,
     exportFlow,
   } = useDebateFlow()
+
+  const [drawingMode, setDrawingMode] = useState(false)
+  const [selectedCell, setSelectedCell] = useState(null)
+
+  const handleCellClick = useCallback((speechId, cellId) => {
+    if (!drawingMode) return
+    if (!selectedCell) {
+      setSelectedCell({ speechId, cellId })
+    } else {
+      if (selectedCell.speechId === speechId && selectedCell.cellId === cellId) {
+        setSelectedCell(null)
+      } else {
+        addConnection(selectedCell.speechId, selectedCell.cellId, speechId, cellId)
+        setSelectedCell(null)
+      }
+    }
+  }, [drawingMode, selectedCell, addConnection])
 
   if (!activeFlow) return null
 
@@ -57,6 +77,10 @@ export default function App() {
                 if (activeSpeechId === 'all') setActiveSpeechId('1ac')
               }}
             >Single Speech</button>
+            <button
+              className={`${styles.viewBtn} ${drawingMode ? styles.activeView : ''}`}
+              onClick={() => setDrawingMode(!drawingMode)}
+            >{drawingMode ? 'Exit Draw' : 'Draw Lines'}</button>
           </div>
         </div>
 
@@ -69,6 +93,7 @@ export default function App() {
                   onUpdateCell={updateCell}
                   onAddCell={addCell}
                   onDeleteCell={deleteCell}
+                  onCellClick={handleCellClick}
                 />
               ))
             : (() => {
@@ -81,6 +106,7 @@ export default function App() {
                       onUpdateCell={updateCell}
                       onAddCell={addCell}
                       onDeleteCell={deleteCell}
+                      onCellClick={handleCellClick}
                     />
                     <div className={styles.singleHint}>
                       <div className={styles.hintText}>
