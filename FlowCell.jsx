@@ -2,7 +2,7 @@ import { useRef, useCallback, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
 export const FlowCell = forwardRef(function FlowCell(
-  { cell, speechId, side, onUpdate, onDelete, onAddBelow, drawingMode, isSelected, onClick },
+  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, isPending, onKnobClick },
   ref
 ) {
   const textRef = useRef(null)
@@ -25,18 +25,15 @@ export const FlowCell = forwardRef(function FlowCell(
     el.style.height = el.scrollHeight + 'px'
   }, [onUpdate])
 
-  const handleClick = useCallback((e) => {
-    if (drawingMode) {
-      e.stopPropagation()
-      onClick()
-    }
-  }, [drawingMode, onClick])
+  const handleKnobClick = useCallback((e) => {
+    e.stopPropagation()
+    if (onKnobClick) onKnobClick()
+  }, [onKnobClick])
 
   return (
     <div
       ref={ref}
-      className={`${styles.cell} ${styles[side]} ${drawingMode ? styles.drawable : ''} ${isSelected ? styles.selected : ''}`}
-      onClick={handleClick}
+      className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''} ${isPending && !isSelected ? styles.connectable : ''}`}
     >
       <textarea
         ref={textRef}
@@ -46,10 +43,14 @@ export const FlowCell = forwardRef(function FlowCell(
         placeholder="flow..."
         rows={1}
         className={styles.textarea}
-        readOnly={drawingMode}
       />
-      {!drawingMode && (
-        <button className={styles.deleteBtn} onClick={onDelete} title="Delete">×</button>
+      <button className={styles.deleteBtn} onClick={onDelete} title="Delete">×</button>
+      {onKnobClick && (
+        <button
+          className={`${styles.knob} ${isSelected ? styles.knobActive : ''}`}
+          onClick={handleKnobClick}
+          title={isSelected ? 'Deselect' : 'Connect to another argument'}
+        />
       )}
     </div>
   )
