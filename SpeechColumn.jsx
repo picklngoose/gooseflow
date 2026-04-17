@@ -2,7 +2,7 @@ import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, drawingMode, selectedCellId, onCellClick, cellRefsMap }) {
   return (
     <div className={`${styles.column} ${styles[speech.side]}`}>
       <div className={styles.header}>
@@ -10,12 +10,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell }) 
           <span className={`${styles.label} ${styles[speech.side]}`}>{speech.label}</span>
           <span className={`${styles.side} ${styles[speech.side]}`}>{speech.side.toUpperCase()}</span>
         </div>
-        <Timer
-          key={speech.id}
-          duration={speech.time}
-          label={speech.label}
-          side={speech.side}
-        />
+        <Timer key={speech.id} duration={speech.time} label={speech.label} side={speech.side} />
       </div>
 
       <div className={styles.cells}>
@@ -28,11 +23,18 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell }) 
             onUpdate={(updates) => onUpdateCell(speech.id, cell.id, updates)}
             onDelete={() => onDeleteCell(speech.id, cell.id)}
             onAddBelow={() => onAddCell(speech.id)}
+            drawingMode={drawingMode}
+            isSelected={selectedCellId === cell.id}
+            onClick={() => onCellClick && onCellClick(cell.id)}
+            ref={(el) => {
+              if (el) cellRefsMap.current.set(cell.id, el)
+              else cellRefsMap.current.delete(cell.id)
+            }}
           />
         ))}
-        <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>
-          + add
-        </button>
+        {!drawingMode && (
+          <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>+ add</button>
+        )}
       </div>
     </div>
   )
