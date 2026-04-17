@@ -189,6 +189,8 @@ export function useDebateFlow() {
     a.download = `${activeFlow.name.replace(/\s+/g, '-').toLowerCase()}-flow.txt`
     a.click()
     URL.revokeObjectURL(url)
+  }, [activeFlow])
+
   const addConnection = useCallback((fromSpeechId, fromCellId, toSpeechId, toCellId) => {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
