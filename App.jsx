@@ -18,27 +18,8 @@ export default function App() {
     updateCell,
     addCell,
     deleteCell,
-    addConnection,
-    removeConnection,
     exportFlow,
   } = useDebateFlow()
-
-  const [drawingMode, setDrawingMode] = useState(false)
-  const [selectedCell, setSelectedCell] = useState(null)
-
-  const handleCellClick = useCallback((speechId, cellId) => {
-    if (!drawingMode) return
-    if (!selectedCell) {
-      setSelectedCell({ speechId, cellId })
-    } else {
-      if (selectedCell.speechId === speechId && selectedCell.cellId === cellId) {
-        setSelectedCell(null)
-      } else {
-        addConnection(selectedCell.speechId, selectedCell.cellId, speechId, cellId)
-        setSelectedCell(null)
-      }
-    }
-  }, [drawingMode, selectedCell, addConnection])
 
   if (!activeFlow) return null
 
@@ -70,17 +51,11 @@ export default function App() {
             <button
               className={`${styles.viewBtn} ${activeSpeechId === 'all' ? styles.activeView : ''}`}
               onClick={() => setActiveSpeechId('all')}
-            >All Speeches</button>
+            >All</button>
             <button
               className={`${styles.viewBtn} ${activeSpeechId !== 'all' ? styles.activeView : ''}`}
-              onClick={() => {
-                if (activeSpeechId === 'all') setActiveSpeechId('1ac')
-              }}
-            >Single Speech</button>
-            <button
-              className={`${styles.viewBtn} ${drawingMode ? styles.activeView : ''}`}
-              onClick={() => setDrawingMode(!drawingMode)}
-            >{drawingMode ? 'Exit Draw' : 'Draw Lines'}</button>
+              onClick={() => { if (activeSpeechId === 'all') setActiveSpeechId('1ac') }}
+            >Single</button>
           </div>
         </div>
 
@@ -93,32 +68,18 @@ export default function App() {
                   onUpdateCell={updateCell}
                   onAddCell={addCell}
                   onDeleteCell={deleteCell}
-                  onCellClick={handleCellClick}
                 />
               ))
             : (() => {
                 const speech = activeFlow.speeches.find(s => s.id === activeSpeechId)
                 if (!speech) return null
                 return (
-                  <div className={styles.singleView}>
-                    <SpeechColumn
-                      speech={speech}
-                      onUpdateCell={updateCell}
-                      onAddCell={addCell}
-                      onDeleteCell={deleteCell}
-                      onCellClick={handleCellClick}
-                    />
-                    <div className={styles.singleHint}>
-                      <div className={styles.hintText}>
-                        Navigate speeches from the sidebar or switch to All Speeches view
-                      </div>
-                      <div className={styles.shortcutsGrid}>
-                        <kbd>Ctrl+Enter</kbd><span>New argument below</span>
-                        <kbd>Ctrl+Backspace</kbd><span>Delete empty cell</span>
-                        <kbd>Double-click</kbd><span>Rename flow</span>
-                      </div>
-                    </div>
-                  </div>
+                  <SpeechColumn
+                    speech={speech}
+                    onUpdateCell={updateCell}
+                    onAddCell={addCell}
+                    onDeleteCell={deleteCell}
+                  />
                 )
               })()
           }
