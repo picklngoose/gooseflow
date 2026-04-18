@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
@@ -6,14 +7,24 @@ import styles from './SpeechColumn.module.css'
 export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, isHovered }) {
   const items = speech.items || []
 
-  // dragState: which item is being dragged and where the placeholder sits
-  const [dragItemId, setDragItemId] = useState(null)
-  const [placeholderIndex, setPlaceholderIndex] = useState(null)
+  const [drag, setDrag] = useState(null)
+  // drag: { itemId, x, y, width, placeholderIndex, content, side }
 
-  const itemRefs = useRef({})        // itemId → DOM el
-  const dragInfo = useRef(null)      // mutable drag data
+  const itemRefs = useRef({})
+  const dragRef = useRef(null) // mutable, avoids stale closures
 
-  const onPointerDown = useCallback((e, itemId) => {
+  const calcPlaceholderIndex = useCallback((clientY, excludeId) => {
+    const others = items.filter(it => it.id !== excludeId)
+    for (let i = 0; i < others.length; i++) {
+      const el = itemRefs.current[others[i].id]
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      if (clientY < rect.top + rect.height / 2) return i
+    }
+    return others.length
+  }, [items])
+
+  const startDrag = useCallback((e, itemId) => {
     if (e.button !== 0) return
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return
     e.preventDefault()
@@ -21,106 +32,63 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
     const el = itemRefs.current[itemId]
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const idx = items.findIndex(it => it.id === itemId)
+    const item = items.find(it => it.id === itemId)
 
-    dragInfo.current = {
+    const initialPlaceholder = calcPlaceholderIndex(e.clientY, itemId)
+
+    dragRef.current = {
       itemId,
-      originIndex: idx,
-      offsetY: e.clientY - rect.top,   // cursor offset within the element
-      height: rect.height,
+      offsetY: e.clientY - rect.top,
+      placeholderIndex: initialPlaceholder,
     }
 
-    setDragItemId(itemId)
-    setPlaceholderIndex(idx)
+    setDrag({
+      itemId,
+      x: rect.left,
+      y: e.clientY - (e.clientY - rect.top),
+      width: rect.width,
+      placeholderIndex: initialPlaceholder,
+      content: item?.content ?? null,
+      isSpace: item?.type === 'space',
+      side: speech.side,
+    })
 
-    // Move the element to fixed position immediately
-    el.style.position = 'fixed'
-    el.style.zIndex = '9999'
-    el.style.width = `${rect.width}px`
-    el.style.left = `${rect.left}px`
-    el.style.top = `${e.clientY - dragInfo.current.offsetY}px`
-    el.style.pointerEvents = 'none'
-    el.style.opacity = '0.9'
-    el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)'
-
-    el.setPointerCapture(e.pointerId)
-  }, [items])
-
-  const onPointerMove = useCallback((e) => {
-    if (!dragInfo.current) return
-    const { itemId, offsetY, height } = dragInfo.current
-    const el = itemRefs.current[itemId]
-    if (!el) return
-
-    // Move element with cursor
-    el.style.top = `${e.clientY - offsetY}px`
-
-    // Find new placeholder index by checking midpoints of other items
-    const dragCenter = e.clientY - offsetY + height / 2
-    let newIndex = items.length - 1  // default to last
-
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].id === itemId) continue
-      const otherEl = itemRefs.current[items[i].id]
-      if (!otherEl) continue
-      const otherRect = otherEl.getBoundingClientRect()
-      if (dragCenter < otherRect.top + otherRect.height / 2) {
-        newIndex = i
-        break
-      }
+    const onMove = (e) => {
+      if (!dragRef.current) return
+      const newY = e.clientY - dragRef.current.offsetY
+      const newPlaceholder = calcPlaceholderIndex(e.clientY, dragRef.current.itemId)
+      dragRef.current.placeholderIndex = newPlaceholder
+      setDrag(prev => prev ? { ...prev, y: newY, placeholderIndex: newPlaceholder } : null)
     }
 
-    setPlaceholderIndex(newIndex)
-    dragInfo.current.placeholderIndex = newIndex
-  }, [items])
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
 
-  const onPointerUp = useCallback((e) => {
-    if (!dragInfo.current) return
-    const { itemId, placeholderIndex: finalIndex } = dragInfo.current
+      if (!dragRef.current) return
+      const { itemId, placeholderIndex } = dragRef.current
+      dragRef.current = null
+      setDrag(null)
 
-    // Restore element styles
-    const el = itemRefs.current[itemId]
-    if (el) {
-      el.style.position = ''
-      el.style.zIndex = ''
-      el.style.width = ''
-      el.style.left = ''
-      el.style.top = ''
-      el.style.pointerEvents = ''
-      el.style.opacity = ''
-      el.style.boxShadow = ''
-    }
-
-    // Commit reorder
-    if (finalIndex !== null) {
-      const without = items.filter(it => it.id !== itemId)
       const dragged = items.find(it => it.id === itemId)
-      if (dragged) {
-        // finalIndex is the index in the original array, adjust for removal
-        const insertAt = Math.min(finalIndex, without.length)
-        without.splice(insertAt, 0, dragged)
-        onReorderItems(speech.id, without)
-      }
+      if (!dragged) return
+      const without = items.filter(it => it.id !== itemId)
+      const clamp = Math.min(placeholderIndex, without.length)
+      without.splice(clamp, 0, dragged)
+      onReorderItems(speech.id, without)
     }
 
-    dragInfo.current = null
-    setDragItemId(null)
-    setPlaceholderIndex(null)
-  }, [items, speech.id, onReorderItems])
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }, [items, speech.id, speech.side, calcPlaceholderIndex, onReorderItems])
 
-  // Build the rendered list: insert a placeholder at placeholderIndex
-  const renderItems = []
-  let itemsWithoutDragged = items
-  const dragged = dragItemId ? items.find(it => it.id === dragItemId) : null
-
-  if (dragItemId && placeholderIndex !== null) {
-    itemsWithoutDragged = items.filter(it => it.id !== dragItemId)
-    const clampedIdx = Math.min(placeholderIndex, itemsWithoutDragged.length)
-    itemsWithoutDragged = [
-      ...itemsWithoutDragged.slice(0, clampedIdx),
-      { id: '__placeholder__', type: 'placeholder', height: dragInfo.current?.height || 36 },
-      ...itemsWithoutDragged.slice(clampedIdx),
-    ]
+  // Build display list: remove dragged item, insert placeholder at new index
+  let displayItems = items
+  if (drag) {
+    const without = items.filter(it => it.id !== drag.itemId)
+    const clamp = Math.min(drag.placeholderIndex, without.length)
+    without.splice(clamp, 0, { id: '__placeholder__', type: 'placeholder' })
+    displayItems = without
   }
 
   return (
@@ -135,14 +103,14 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
       </div>
 
       <div className={styles.cells}>
-        {itemsWithoutDragged.map(item => {
+        {displayItems.map(item => {
           if (item.type === 'placeholder') {
             return (
-              <div
-                key="__placeholder__"
-                className={styles.placeholder}
-                style={{ height: item.height }}
-              />
+              <div key="__placeholder__" className={`${styles.placeholder} ${drag?.isSpace ? styles.placeholderSpace : ''}`}>
+                {!drag?.isSpace && drag?.content !== null && (
+                  <span className={styles.placeholderText}>{drag?.content || ''}</span>
+                )}
+              </div>
             )
           }
 
@@ -151,9 +119,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
               key={item.id}
               ref={el => { if (el) itemRefs.current[item.id] = el; else delete itemRefs.current[item.id] }}
               className={styles.itemWrapper}
-              onPointerDown={(e) => onPointerDown(e, item.id)}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
+              onPointerDown={(e) => startDrag(e, item.id)}
             >
               {item.type === 'space' ? (
                 <div
@@ -170,7 +136,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   onAddBelow={() => onAddCell(speech.id)}
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
-                  ref={(el) => {
+                  ref={el => {
                     if (el) cellRefsMap.current.set(item.id, el)
                     else cellRefsMap.current.delete(item.id)
                   }}
@@ -180,38 +146,21 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
           )
         })}
 
-        {/* The dragged item is still rendered (now fixed-position) so its ref stays valid */}
-        {dragged && (
-          <div
-            key={dragged.id}
-            ref={el => { if (el) itemRefs.current[dragged.id] = el; else delete itemRefs.current[dragged.id] }}
-            className={styles.itemWrapper}
-            style={{ position: 'fixed', visibility: 'hidden' }} // hidden clone to keep ref alive
-            aria-hidden
-          >
-            {dragged.type === 'space' ? (
-              <div className={styles.emptySpace} />
-            ) : (
-              <FlowCell
-                cell={dragged}
-                speechId={speech.id}
-                side={speech.side}
-                onUpdate={() => {}}
-                onDelete={() => {}}
-                onAddBelow={() => {}}
-                isSelected={false}
-                onKnobClick={null}
-                ref={(el) => {
-                  if (el) cellRefsMap.current.set(dragged.id, el)
-                  else cellRefsMap.current.delete(dragged.id)
-                }}
-              />
-            )}
-          </div>
-        )}
-
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>+ add</button>
       </div>
+
+      {/* Floating drag element rendered into body via portal */}
+      {drag && createPortal(
+        <div
+          className={`${styles.floatingCell} ${drag.isSpace ? styles.floatingSpace : ''} ${styles[drag.side]}`}
+          style={{ top: drag.y, left: drag.x, width: drag.width }}
+        >
+          {!drag.isSpace && (
+            <span className={styles.floatingText}>{drag.content || <em className={styles.floatingPlaceholder}>flow...</em>}</span>
+          )}
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
