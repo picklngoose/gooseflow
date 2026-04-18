@@ -11,6 +11,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
 
   const itemRefs = useRef({})
   const dragRef = useRef(null) // mutable, avoids stale closures
+  const floatingRef = useRef(null)
 
   const calcPlaceholderIndex = useCallback((clientY, excludeId) => {
     const others = items.filter(it => it.id !== excludeId)
@@ -58,6 +59,10 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
       const newPlaceholder = calcPlaceholderIndex(e.clientY, dragRef.current.itemId)
       dragRef.current.placeholderIndex = newPlaceholder
       setDrag(prev => prev ? { ...prev, y: newY, placeholderIndex: newPlaceholder } : null)
+      // Point cellRefsMap at the floating element so connection lines follow it
+      if (floatingRef.current && dragRef.current) {
+        cellRefsMap.current.set(dragRef.current.itemId, floatingRef.current)
+      }
       if (onDragMove) onDragMove()
     }
 
@@ -69,6 +74,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
       const { itemId, placeholderIndex } = dragRef.current
       dragRef.current = null
       setDrag(null)
+      // cellRefsMap will be restored by FlowCell's ref callback on next render
 
       const dragged = items.find(it => it.id === itemId)
       if (!dragged) return
@@ -151,6 +157,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
       {/* Floating drag element rendered into body via portal */}
       {drag && createPortal(
         <div
+          ref={floatingRef}
           className={`${styles.floatingCell} ${drag.isSpace ? styles.floatingSpace : ''} ${styles[drag.side]}`}
           style={{ top: drag.y, left: drag.x, width: drag.width }}
         >
