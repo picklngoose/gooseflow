@@ -46,6 +46,37 @@ export default function App() {
     return () => { el.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
   }, [])
 
+  // Native contextmenu on the board — finds nearest connection path and deletes it.
+  // Native listener works even though the SVG overlay has pointer-events:none.
+  useEffect(() => {
+    const el = flowBoardRef.current
+    if (!el) return
+    const onContextMenu = (e) => {
+      const svgEl = svgRef.current
+      if (!svgEl || connPathsRef.current.size === 0) return
+      const rect = svgEl.getBoundingClientRect()
+      const mx = e.clientX - rect.left
+      const my = e.clientY - rect.top
+      let bestId = null
+      let bestDist = 14
+      connPathsRef.current.forEach((pathEl, connId) => {
+        const len = pathEl.getTotalLength()
+        const steps = Math.max(20, Math.floor(len / 8))
+        for (let i = 0; i <= steps; i++) {
+          const pt = pathEl.getPointAtLength((i / steps) * len)
+          const dist = Math.hypot(pt.x - mx, pt.y - my)
+          if (dist < bestDist) { bestDist = dist; bestId = connId }
+        }
+      })
+      if (bestId) {
+        e.preventDefault()
+        removeConnection(bestId)
+      }
+    }
+    el.addEventListener('contextmenu', onContextMenu)
+    return () => el.removeEventListener('contextmenu', onContextMenu)
+  }, [removeConnection])
+
   useEffect(() => {
     const t = setTimeout(() => forceUpdate(n => n + 1), 50)
     return () => clearTimeout(t)
@@ -170,26 +201,7 @@ export default function App() {
           className={styles.flowBoard}
           onClick={(e) => { if (e.target === flowBoardRef.current) { setPendingFrom([]); setCursor(null) } }}
         >
-          <svg ref={svgRef} className={styles.lineOverlay} onContextMenu={(e) => {
-            e.preventDefault()
-            const svgEl = svgRef.current
-            if (!svgEl) return
-            const rect = svgEl.getBoundingClientRect()
-            const mx = e.clientX - rect.left
-            const my = e.clientY - rect.top
-            let bestId = null
-            let bestDist = 12 // px threshold — must be within this distance
-            connPathsRef.current.forEach((pathEl, connId) => {
-              const len = pathEl.getTotalLength()
-              const steps = Math.max(20, Math.floor(len / 8))
-              for (let i = 0; i <= steps; i++) {
-                const pt = pathEl.getPointAtLength((i / steps) * len)
-                const dist = Math.hypot(pt.x - mx, pt.y - my)
-                if (dist < bestDist) { bestDist = dist; bestId = connId }
-              }
-            })
-            if (bestId) removeConnection(bestId)
-          }}>
+          <svg ref={svgRef} className={styles.lineOverlay}>
             <defs>
               <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                 <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -205,14 +217,11 @@ export default function App() {
               const cx = (x1 + x2) / 2
               const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
               return (
-                <g key={conn.id}>
-                  <path d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)" style={{ pointerEvents: 'none' }} />
-                  <path
-                    ref={el => { if (el) connPathsRef.current.set(conn.id, el); else connPathsRef.current.delete(conn.id) }}
-                    d={d} fill="none" stroke="transparent" strokeWidth="16"
-                    style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-                  />
-                </g>
+                <path
+                  key={conn.id}
+                  ref={el => { if (el) connPathsRef.current.set(conn.id, el); else connPathsRef.current.delete(conn.id) }}
+                  d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)"
+                />
               )
             })}
             {isPending && cursor && pendingFrom.map(src => {
