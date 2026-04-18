@@ -4,7 +4,7 @@
   border-radius: var(--radius);
   display: flex;
   align-items: flex-start;
-  padding: 5px 24px 5px 8px;
+  padding: 5px 8px;
   gap: 4px;
   transition: border-color 0.15s;
   position: relative;
@@ -38,33 +38,6 @@
   overflow: hidden;
   position: relative;
   z-index: 1;
-}
-
-.deleteBtn {
-  position: absolute;
-  top: 4px;
-  right: 18px;
-  width: 16px;
-  height: 16px;
-  font-size: 14px;
-  color: var(--text-3);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
-  line-height: 1;
-  padding-bottom: 1px;
-  z-index: 2;
-}
-
-.cell:hover .deleteBtn {
-  opacity: 1;
-}
-
-.deleteBtn:hover {
-  color: var(--accent-neg);
 }
 
 /* Connect knob — sits on the right edge, outside the cell border */
