@@ -1,103 +1,118 @@
-.cell {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+/* ── Top-level layout ── */
+.app {
   display: flex;
-  align-items: flex-start;
-  padding: 5px 24px 5px 8px;
-  gap: 4px;
-  transition: border-color 0.15s;
-  position: relative;
-  overflow: visible;
-}
-
-.cell:hover {
-  border-color: var(--border-bright);
-}
-
-.cell.aff {
-  border-left: 2px solid var(--accent-aff-dim);
-}
-
-.cell.neg {
-  border-left: 2px solid var(--accent-neg-dim);
-}
-
-.cell.selected {
-  border-color: var(--accent-yellow) !important;
-  background: #1a1506 !important;
-  box-shadow: 0 0 0 1px var(--accent-yellow);
-}
-
-.textarea {
-  flex: 1;
-  min-height: 32px;
-  line-height: 1.5;
-  padding: 0;
-  font-size: 12px;
+  height: 100vh;
   overflow: hidden;
-  position: relative;
-  z-index: 1;
 }
 
-.deleteBtn {
-  position: absolute;
-  top: 4px;
-  right: 18px;
-  width: 16px;
-  height: 16px;
-  font-size: 14px;
-  color: var(--text-3);
-  border-radius: var(--radius);
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Top bar ── */
+.topBar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
-  line-height: 1;
-  padding-bottom: 1px;
-  z-index: 2;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 12px;
 }
 
-.cell:hover .deleteBtn {
-  opacity: 1;
+.topBarLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
 }
 
-.deleteBtn:hover {
-  color: var(--accent-neg);
+.flowTitle {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Connect knob — sits on the right edge, outside the cell border */
-.knob {
-  position: absolute;
-  right: -5px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--bg-3);
-  border: 1.5px solid var(--border-bright);
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
-  cursor: crosshair;
-  z-index: 20;
-  padding: 0;
+.flowDate {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
   flex-shrink: 0;
 }
 
-.cell:hover .knob {
-  opacity: 1;
+.viewBtn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  border-radius: 3px;
+  transition: all 0.15s;
 }
 
-.knob:hover {
-  background: var(--accent-yellow);
-  border-color: var(--accent-yellow);
+.viewBtn:hover {
+  color: var(--text-0);
 }
 
-.knob.knobActive {
-  opacity: 1 !important;
-  background: var(--accent-yellow);
-  border-color: var(--accent-yellow);
-  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.25);
+.viewBtn.activeView {
+  background: var(--bg-3);
+  color: var(--text-0);
+  border: 1px solid var(--border-bright);
+}
+
+/* ── Flow board (scrollable horizontal canvas) ── */
+.flowBoard {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+  align-items: flex-start;
+}
+
+/* ── SVG overlay for connection lines ── */
+.lineOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── Hint bar shown while drawing a connection ── */
+.drawHint {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-3);
+  border: 1px solid var(--border-bright);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-1);
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
 }
