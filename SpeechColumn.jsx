@@ -58,11 +58,15 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
       const newY = e.clientY - dragRef.current.offsetY
       const newPlaceholder = calcPlaceholderIndex(e.clientY, dragRef.current.itemId)
       dragRef.current.placeholderIndex = newPlaceholder
-      setDrag(prev => prev ? { ...prev, y: newY, placeholderIndex: newPlaceholder } : null)
-      // Point cellRefsMap at the floating element so connection lines follow it
-      if (floatingRef.current && dragRef.current) {
+
+      // Move floating element directly via DOM — no React render lag
+      if (floatingRef.current) {
+        floatingRef.current.style.top = newY + 'px'
         cellRefsMap.current.set(dragRef.current.itemId, floatingRef.current)
       }
+
+      // Only update React state for placeholder index (not position)
+      setDrag(prev => prev ? { ...prev, placeholderIndex: newPlaceholder } : null)
       if (onDragMove) onDragMove()
     }
 
