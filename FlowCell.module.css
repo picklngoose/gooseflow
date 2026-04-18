@@ -1,86 +1,81 @@
-.cell {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+.column {
+  min-width: 220px;
+  max-width: 280px;
+  flex: 1;
   display: flex;
-  align-items: flex-start;
-  padding: 5px 8px;
-  gap: 4px;
-  transition: border-color 0.15s;
-  position: relative;
-  overflow: visible;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: visible;
+  padding: 6px 12px 8px 6px;
+  border-radius: var(--radius-lg);
+  transition: background 0.2s;
 }
 
-.cell:hover {
+.column.hovered {
+  background: rgba(255,255,255,0.012);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.label.aff { color: var(--accent-aff); }
+.label.neg { color: var(--accent-neg); }
+
+.cells {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: visible;
+  padding-bottom: 4px;
+  margin-left: 12px;
+}
+
+.emptySpace {
+  height: 20px;
+  background: var(--bg-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  opacity: 0.5;
+  transition: opacity 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+
+.emptySpace:hover {
+  opacity: 0.8;
   border-color: var(--border-bright);
 }
 
-.cell.aff {
-  border-left: 2px solid var(--accent-aff-dim);
+.addCell {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 5px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-3);
+  background: transparent;
+  text-align: center;
+  transition: all 0.15s;
+  margin-top: 2px;
 }
 
-.cell.neg {
-  border-left: 2px solid var(--accent-neg-dim);
-}
-
-.cell.selected {
-  border-color: var(--accent-yellow) !important;
-  background: #1a1506 !important;
-  box-shadow: 0 0 0 1px var(--accent-yellow);
-}
-
-.textarea {
-  flex: 1;
-  min-height: 32px;
-  line-height: 1.5;
-  padding: 0;
-  font-size: 12px;
-  overflow: hidden;
-  position: relative;
-  z-index: 1;
-}
-
-/* Connect knob — sits on the right edge, outside the cell border */
-.knob {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--bg-3);
-  border: 1.5px solid var(--border-bright);
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
-  cursor: crosshair;
-  z-index: 50;
-  padding: 0;
-  flex-shrink: 0;
-  pointer-events: all;
-}
-
-.cell:hover .knob {
-  opacity: 1;
-}
-
-.knob:hover {
-  background: var(--accent-yellow);
-  border-color: var(--accent-yellow);
-}
-
-.knob.knobActive {
-  opacity: 1 !important;
-  background: var(--accent-yellow);
-  border-color: var(--accent-yellow);
-  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.25);
-}
-
-.knobLeft {
-  left: -10px;
-  transform: translateY(-50%);
-}
-
-.knobRight {
-  right: -10px;
-  transform: translateY(-50%);
+.addCell:hover {
+  color: var(--text-1);
+  border-color: var(--border-bright);
+  border-style: solid;
+  background: var(--bg-2);
 }
