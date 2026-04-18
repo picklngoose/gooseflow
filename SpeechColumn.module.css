@@ -57,12 +57,82 @@
   cursor: grabbing;
 }
 
-/* Placeholder gap where the item will be dropped */
+/* Placeholder: looks like the actual cell being dragged */
 .placeholder {
-  border: 1.5px dashed var(--border-bright);
+  background: var(--bg-2);
+  border: 1px solid var(--border-bright);
   border-radius: var(--radius);
-  opacity: 0.4;
-  transition: height 0.1s;
+  padding: 5px 8px;
+  min-height: 36px;
+  opacity: 0.35;
+  display: flex;
+  align-items: flex-start;
+}
+
+.placeholder.aff {
+  border-left: 2px solid var(--accent-aff-dim);
+}
+
+.placeholder.neg {
+  border-left: 2px solid var(--accent-neg-dim);
+}
+
+.placeholderSpace {
+  min-height: 20px;
+  padding: 0;
+}
+
+.placeholderText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Floating cell that follows cursor */
+.floatingCell {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--bg-2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 5px 8px;
+  min-height: 36px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-start;
+  opacity: 0.95;
+}
+
+.floatingCell.aff {
+  border-left: 2px solid var(--accent-aff-dim);
+}
+
+.floatingCell.neg {
+  border-left: 2px solid var(--accent-neg-dim);
+}
+
+.floatingSpace {
+  min-height: 20px;
+  padding: 0;
+  opacity: 0.7;
+}
+
+.floatingText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-0);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.floatingPlaceholder {
+  font-style: normal;
+  color: var(--text-3);
 }
 
 .emptySpace {
