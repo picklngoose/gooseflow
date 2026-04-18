@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, forwardRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
@@ -6,34 +6,14 @@ import styles from './SpeechColumn.module.css'
 export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, isHovered }) {
   const items = speech.items || []
 
-  const [dragState, setDragState] = useState(null)
-  // dragState: { itemId, ghostContent, ghostHeight, cursorY, insertBeforeId }
+  // dragState: which item is being dragged and where the placeholder sits
+  const [dragItemId, setDragItemId] = useState(null)
+  const [placeholderIndex, setPlaceholderIndex] = useState(null)
 
-  const itemRefs = useRef({})
-  const columnRef = useRef(null)
-  const ghostRef = useRef(null)
-  const dragData = useRef(null) // live mutable drag data to avoid stale closures
-
-  const getInsertTarget = useCallback((clientY) => {
-    // Find which item the cursor is nearest to and whether to insert before/after
-    let best = null
-    let bestDist = Infinity
-    for (const item of items) {
-      const el = itemRefs.current[item.id]
-      if (!el) continue
-      const rect = el.getBoundingClientRect()
-      const mid = rect.top + rect.height / 2
-      const dist = Math.abs(clientY - mid)
-      if (dist < bestDist) {
-        bestDist = dist
-        best = { id: item.id, before: clientY < mid }
-      }
-    }
-    return best
-  }, [items])
+  const itemRefs = useRef({})        // itemId → DOM el
+  const dragInfo = useRef(null)      // mutable drag data
 
   const onPointerDown = useCallback((e, itemId) => {
-    // Only trigger on the drag handle (left button, not inside textarea)
     if (e.button !== 0) return
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return
     e.preventDefault()
@@ -41,76 +21,110 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
     const el = itemRefs.current[itemId]
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const item = items.find(it => it.id === itemId)
+    const idx = items.findIndex(it => it.id === itemId)
 
-    dragData.current = { itemId, startY: e.clientY, insertBeforeId: null, moved: false }
-
-    setDragState({
+    dragInfo.current = {
       itemId,
-      ghostHeight: rect.height,
-      ghostContent: item?.type === 'cell' ? item.content : null,
-      cursorY: e.clientY,
-      insertBeforeId: null,
-    })
+      originIndex: idx,
+      offsetY: e.clientY - rect.top,   // cursor offset within the element
+      height: rect.height,
+    }
+
+    setDragItemId(itemId)
+    setPlaceholderIndex(idx)
+
+    // Move the element to fixed position immediately
+    el.style.position = 'fixed'
+    el.style.zIndex = '9999'
+    el.style.width = `${rect.width}px`
+    el.style.left = `${rect.left}px`
+    el.style.top = `${e.clientY - dragInfo.current.offsetY}px`
+    el.style.pointerEvents = 'none'
+    el.style.opacity = '0.9'
+    el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)'
 
     el.setPointerCapture(e.pointerId)
   }, [items])
 
   const onPointerMove = useCallback((e) => {
-    if (!dragData.current) return
-    dragData.current.moved = true
+    if (!dragInfo.current) return
+    const { itemId, offsetY, height } = dragInfo.current
+    const el = itemRefs.current[itemId]
+    if (!el) return
 
-    const target = getInsertTarget(e.clientY)
-    const insertBeforeId = target
-      ? (target.before ? target.id : getNextId(target.id))
-      : null
+    // Move element with cursor
+    el.style.top = `${e.clientY - offsetY}px`
 
-    dragData.current.insertBeforeId = insertBeforeId
+    // Find new placeholder index by checking midpoints of other items
+    const dragCenter = e.clientY - offsetY + height / 2
+    let newIndex = items.length - 1  // default to last
 
-    setDragState(prev => prev ? { ...prev, cursorY: e.clientY, insertBeforeId } : null)
-
-    // Move ghost
-    if (ghostRef.current) {
-      ghostRef.current.style.top = `${e.clientY}px`
-    }
-  }, [getInsertTarget])
-
-  const getNextId = (id) => {
-    const idx = items.findIndex(it => it.id === id)
-    return idx >= 0 && idx < items.length - 1 ? items[idx + 1].id : null
-  }
-
-  const onPointerUp = useCallback((e) => {
-    if (!dragData.current) return
-    const { itemId, insertBeforeId, moved } = dragData.current
-    dragData.current = null
-
-    if (moved) {
-      // Reorder
-      const oldItems = [...items]
-      const draggedItem = oldItems.find(it => it.id === itemId)
-      if (draggedItem) {
-        const without = oldItems.filter(it => it.id !== itemId)
-        if (insertBeforeId === null) {
-          onReorderItems(speech.id, [...without, draggedItem])
-        } else {
-          const insertIdx = without.findIndex(it => it.id === insertBeforeId)
-          if (insertIdx === -1) {
-            onReorderItems(speech.id, [...without, draggedItem])
-          } else {
-            without.splice(insertIdx, 0, draggedItem)
-            onReorderItems(speech.id, without)
-          }
-        }
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].id === itemId) continue
+      const otherEl = itemRefs.current[items[i].id]
+      if (!otherEl) continue
+      const otherRect = otherEl.getBoundingClientRect()
+      if (dragCenter < otherRect.top + otherRect.height / 2) {
+        newIndex = i
+        break
       }
     }
 
-    setDragState(null)
+    setPlaceholderIndex(newIndex)
+    dragInfo.current.placeholderIndex = newIndex
+  }, [items])
+
+  const onPointerUp = useCallback((e) => {
+    if (!dragInfo.current) return
+    const { itemId, placeholderIndex: finalIndex } = dragInfo.current
+
+    // Restore element styles
+    const el = itemRefs.current[itemId]
+    if (el) {
+      el.style.position = ''
+      el.style.zIndex = ''
+      el.style.width = ''
+      el.style.left = ''
+      el.style.top = ''
+      el.style.pointerEvents = ''
+      el.style.opacity = ''
+      el.style.boxShadow = ''
+    }
+
+    // Commit reorder
+    if (finalIndex !== null) {
+      const without = items.filter(it => it.id !== itemId)
+      const dragged = items.find(it => it.id === itemId)
+      if (dragged) {
+        // finalIndex is the index in the original array, adjust for removal
+        const insertAt = Math.min(finalIndex, without.length)
+        without.splice(insertAt, 0, dragged)
+        onReorderItems(speech.id, without)
+      }
+    }
+
+    dragInfo.current = null
+    setDragItemId(null)
+    setPlaceholderIndex(null)
   }, [items, speech.id, onReorderItems])
+
+  // Build the rendered list: insert a placeholder at placeholderIndex
+  const renderItems = []
+  let itemsWithoutDragged = items
+  const dragged = dragItemId ? items.find(it => it.id === dragItemId) : null
+
+  if (dragItemId && placeholderIndex !== null) {
+    itemsWithoutDragged = items.filter(it => it.id !== dragItemId)
+    const clampedIdx = Math.min(placeholderIndex, itemsWithoutDragged.length)
+    itemsWithoutDragged = [
+      ...itemsWithoutDragged.slice(0, clampedIdx),
+      { id: '__placeholder__', type: 'placeholder', height: dragInfo.current?.height || 36 },
+      ...itemsWithoutDragged.slice(clampedIdx),
+    ]
+  }
 
   return (
     <div
-      ref={columnRef}
       className={`${styles.column} ${styles[speech.side]} ${isHovered ? styles.hovered : ''}`}
       onMouseEnter={() => onHover && onHover(speech.id)}
       onMouseLeave={() => onHover && onHover(null)}
@@ -121,15 +135,22 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
       </div>
 
       <div className={styles.cells}>
-        {items.map(item => {
-          const isDragging = dragState?.itemId === item.id
-          const isInsertBefore = dragState?.insertBeforeId === item.id
+        {itemsWithoutDragged.map(item => {
+          if (item.type === 'placeholder') {
+            return (
+              <div
+                key="__placeholder__"
+                className={styles.placeholder}
+                style={{ height: item.height }}
+              />
+            )
+          }
 
           return (
             <div
               key={item.id}
               ref={el => { if (el) itemRefs.current[item.id] = el; else delete itemRefs.current[item.id] }}
-              className={`${styles.itemWrapper} ${isDragging ? styles.dragging : ''} ${isInsertBefore ? styles.insertBefore : ''}`}
+              className={styles.itemWrapper}
               onPointerDown={(e) => onPointerDown(e, item.id)}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -150,8 +171,8 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
                   ref={(el) => {
-                    if (el) { cellRefsMap.current.set(item.id, el); }
-                    else { cellRefsMap.current.delete(item.id) }
+                    if (el) cellRefsMap.current.set(item.id, el)
+                    else cellRefsMap.current.delete(item.id)
                   }}
                 />
               )}
@@ -159,26 +180,38 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
           )
         })}
 
-        {/* Drop indicator at end of list */}
-        {dragState && dragState.insertBeforeId === null && (
-          <div className={styles.insertBefore} style={{ marginTop: 2 }} />
+        {/* The dragged item is still rendered (now fixed-position) so its ref stays valid */}
+        {dragged && (
+          <div
+            key={dragged.id}
+            ref={el => { if (el) itemRefs.current[dragged.id] = el; else delete itemRefs.current[dragged.id] }}
+            className={styles.itemWrapper}
+            style={{ position: 'fixed', visibility: 'hidden' }} // hidden clone to keep ref alive
+            aria-hidden
+          >
+            {dragged.type === 'space' ? (
+              <div className={styles.emptySpace} />
+            ) : (
+              <FlowCell
+                cell={dragged}
+                speechId={speech.id}
+                side={speech.side}
+                onUpdate={() => {}}
+                onDelete={() => {}}
+                onAddBelow={() => {}}
+                isSelected={false}
+                onKnobClick={null}
+                ref={(el) => {
+                  if (el) cellRefsMap.current.set(dragged.id, el)
+                  else cellRefsMap.current.delete(dragged.id)
+                }}
+              />
+            )}
+          </div>
         )}
 
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>+ add</button>
       </div>
-
-      {/* Ghost element that follows cursor */}
-      {dragState && (
-        <div
-          ref={ghostRef}
-          className={`${styles.ghost} ${dragState.ghostContent === null ? styles.ghostSpace : ''}`}
-          style={{ top: dragState.cursorY, height: dragState.ghostHeight }}
-        >
-          {dragState.ghostContent !== null && (
-            <span className={styles.ghostText}>{dragState.ghostContent || 'flow...'}</span>
-          )}
-        </div>
-      )}
     </div>
   )
 }
