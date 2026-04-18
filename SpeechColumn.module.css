@@ -10,11 +10,11 @@
   overflow-x: visible;
   padding: 6px 12px 8px 6px;
   border-radius: var(--radius-lg);
-  transition: background 0.15s;
+  transition: background 0.2s;
 }
 
 .column.hovered {
-  background: rgba(255,255,255,0.025);
+  background: rgba(255,255,255,0.012);
 }
 
 .header {
