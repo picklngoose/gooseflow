@@ -17,6 +17,8 @@ export default function App() {
 
   const [showHelp, setShowHelp] = useState(false)
   const [, forceUpdate] = useState(0)
+  const [pendingFrom, setPendingFrom] = useState([])
+  const [cursor, setCursor] = useState(null)
 
   const cellRefsMap = useRef(new Map())
   const flowBoardRef = useRef(null)
