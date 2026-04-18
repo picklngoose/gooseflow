@@ -76,9 +76,11 @@
 }
 
 .knobLeft {
-  left: -8px;
+  left: -10px;
+  transform: translateY(-50%);
 }
 
 .knobRight {
-  right: -8px;
+  right: -10px;
+  transform: translateY(-50%);
 }
