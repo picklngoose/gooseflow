@@ -34,6 +34,7 @@ export default function App() {
   const cellRefsMap = useRef(new Map())
   const flowBoardRef = useRef(null)
   const svgRef = useRef(null)
+  const deletingConnRef = useRef(false)
 
   // Redraw lines on scroll/resize
   useEffect(() => {
@@ -112,21 +113,26 @@ export default function App() {
     const svgRect = svgEl.getBoundingClientRect()
     const fromRect = fromEl.getBoundingClientRect()
     const toRect = toEl.getBoundingClientRect()
+    // Pick the correct edges depending on direction
+    const goingRight = fromRect.left < toRect.left
     return {
-      x1: fromRect.right - svgRect.left,
+      x1: (goingRight ? fromRect.right : fromRect.left) - svgRect.left,
       y1: fromRect.top + fromRect.height / 2 - svgRect.top,
-      x2: toRect.left - svgRect.left,
+      x2: (goingRight ? toRect.left : toRect.right) - svgRect.left,
       y2: toRect.top + toRect.height / 2 - svgRect.top,
     }
   }, [])
-
   const getKnobCoords = useCallback((cellId) => {
     const el = cellRefsMap.current.get(cellId)
     const svgEl = svgRef.current
     if (!el || !svgEl) return null
     const svgRect = svgEl.getBoundingClientRect()
     const rect = el.getBoundingClientRect()
-    return { x: rect.right - svgRect.left, y: rect.top + rect.height / 2 - svgRect.top }
+    return {
+      left: rect.left - svgRect.left,
+      right: rect.right - svgRect.left,
+      y: rect.top + rect.height / 2 - svgRect.top,
+    }
   }, [])
 
   if (!activeFlow) return null
@@ -182,15 +188,17 @@ export default function App() {
               return (
                 <g key={conn.id}>
                   <path d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)" style={{ pointerEvents: 'none' }} />
-                  <path d={d} fill="none" stroke="transparent" strokeWidth="16" style={{ pointerEvents: 'stroke', cursor: 'pointer' }} onContextMenu={(e) => { e.preventDefault(); removeConnection(conn.id) }} />
+                  <path d={d} fill="none" stroke="transparent" strokeWidth="16" style={{ pointerEvents: 'stroke', cursor: 'pointer' }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); if (deletingConnRef.current) return; deletingConnRef.current = true; removeConnection(conn.id); setTimeout(() => { deletingConnRef.current = false }, 0) }} />
                 </g>
               )
             })}
             {isPending && cursor && pendingFrom.map(src => {
               const from = getKnobCoords(src.cellId)
               if (!from) return null
-              const cx = (from.x + cursor.x) / 2
-              const d = `M ${from.x} ${from.y} C ${cx} ${from.y}, ${cx} ${cursor.y}, ${cursor.x} ${cursor.y}`
+              const goingRight = cursor.x > from.right
+              const fromX = goingRight ? from.right : from.left
+              const cx = (fromX + cursor.x) / 2
+              const d = `M ${fromX} ${from.y} C ${cx} ${from.y}, ${cx} ${cursor.y}, ${cursor.x} ${cursor.y}`
               return <path key={`draft-${src.cellId}`} d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.35" markerEnd="url(#arrowDraft)" style={{ pointerEvents: 'none' }} />
             })}
           </svg>
