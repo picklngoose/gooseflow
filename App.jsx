@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useDebateFlow } from './useDebateFlow'
 import { Sidebar } from './Sidebar'
 import { SpeechColumn } from './SpeechColumn'
@@ -23,11 +23,9 @@ export default function App() {
     exportFlow,
   } = useDebateFlow()
 
-  const [drawingMode, setDrawingMode] = useState(false)
   const [selectedCell, setSelectedCell] = useState(null)
 
   const handleCellClick = useCallback((speechId, cellId) => {
-    if (!drawingMode) return
     if (!selectedCell) {
       setSelectedCell({ speechId, cellId })
     } else {
@@ -38,7 +36,20 @@ export default function App() {
         setSelectedCell(null)
       }
     }
-  }, [drawingMode, selectedCell, addConnection])
+  }, [selectedCell, addConnection])
+
+  const handleKnobClick = useCallback((speechId, cellId, direction) => {
+    if (!selectedCell) {
+      setSelectedCell({ speechId, cellId, direction })
+    } else {
+      if (selectedCell.speechId === speechId && selectedCell.cellId === cellId) {
+        setSelectedCell(null)
+      } else {
+        addConnection(selectedCell.speechId, selectedCell.cellId, speechId, cellId)
+        setSelectedCell(null)
+      }
+    }
+  }, [selectedCell, addConnection])
 
   if (!activeFlow) return null
 
@@ -77,10 +88,6 @@ export default function App() {
                 if (activeSpeechId === 'all') setActiveSpeechId('1ac')
               }}
             >Single Speech</button>
-            <button
-              className={`${styles.viewBtn} ${drawingMode ? styles.activeView : ''}`}
-              onClick={() => setDrawingMode(!drawingMode)}
-            >{drawingMode ? 'Exit Draw' : 'Draw Lines'}</button>
           </div>
         </div>
 
@@ -94,6 +101,8 @@ export default function App() {
                   onAddCell={addCell}
                   onDeleteCell={deleteCell}
                   onCellClick={handleCellClick}
+                  onKnobClick={handleKnobClick}
+                  selectedCell={selectedCell}
                 />
               ))
             : (() => {
@@ -107,6 +116,8 @@ export default function App() {
                       onAddCell={addCell}
                       onDeleteCell={deleteCell}
                       onCellClick={handleCellClick}
+                      onKnobClick={handleKnobClick}
+                      selectedCell={selectedCell}
                     />
                     <div className={styles.singleHint}>
                       <div className={styles.hintText}>

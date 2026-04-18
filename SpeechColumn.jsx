@@ -2,7 +2,7 @@ import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onCellClick }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onCellClick, onKnobClick, selectedCell = null }) {
   const isCX = speech.type === 'cx'
   
   return (
@@ -36,6 +36,8 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
             onDelete={() => onDeleteCell(speech.id, cell.id)}
             onAddBelow={() => onAddCell(speech.id)}
             onClick={() => onCellClick && onCellClick(speech.id, cell.id)}
+            onKnobClick={onKnobClick}
+            isSelected={selectedCell && selectedCell.speechId === speech.id && selectedCell.cellId === cell.id}
           />
         ))}
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>

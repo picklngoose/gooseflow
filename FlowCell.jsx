@@ -10,7 +10,7 @@ const TAGS = [
   { id: 'cw', label: 'CW', title: 'Counterwarrant' },
 ]
 
-export function FlowCell({ cell, speechId, side, onUpdate, onDelete, onAddBelow, onClick }) {
+export function FlowCell({ cell, speechId, side, onUpdate, onDelete, onAddBelow, onClick, onKnobClick, isSelected = false }) {
   const textRef = useRef(null)
 
   const handleKey = useCallback((e) => {
@@ -39,11 +39,19 @@ export function FlowCell({ cell, speechId, side, onUpdate, onDelete, onAddBelow,
     onUpdate({ tags })
   }, [cell.tags, onUpdate])
 
+  const handleKnobClick = useCallback((direction, e) => {
+    e.stopPropagation()
+    if (onKnobClick) {
+      onKnobClick(speechId, cell.id, direction)
+    }
+  }, [speechId, cell.id, onKnobClick])
+
   const isDrop = cell.tags.includes('drop')
   const isTurn = cell.tags.includes('turn')
 
   return (
-    <div className={`${styles.cell} ${styles[side]} ${isDrop ? styles.dropped : ''} ${isTurn ? styles.turned : ''}`} onClick={onClick}>
+    <div className={`${styles.cell} ${styles[side]} ${isDrop ? styles.dropped : ''} ${isTurn ? styles.turned : ''} ${isSelected ? styles.selected : ''}`} onClick={onClick}>
+      <div className={styles.knobLeft} onClick={(e) => handleKnobClick('left', e)} title="Connect from left"></div>
       <div className={styles.main}>
         <textarea
           ref={textRef}
@@ -56,6 +64,7 @@ export function FlowCell({ cell, speechId, side, onUpdate, onDelete, onAddBelow,
         />
         <button className={styles.deleteBtn} onClick={onDelete} title="Delete cell">×</button>
       </div>
+      <div className={styles.knobRight} onClick={(e) => handleKnobClick('right', e)} title="Connect from right"></div>
       <div className={styles.tags}>
         {TAGS.map(tag => (
           <button

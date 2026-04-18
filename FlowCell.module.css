@@ -5,6 +5,8 @@
   overflow: hidden;
   transition: border-color 0.15s, background 0.15s;
   position: relative;
+  display: flex;
+  align-items: stretch;
 }
 
 .cell:hover {
@@ -30,12 +32,47 @@
   color: var(--text-2);
 }
 
-.cell.turned {
-  background: var(--tag-blue);
+.cell.selected {
   border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px var(--accent-blue);
+}
+
+.knobLeft, .knobRight {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  opacity: 1;
+  transition: all 0.15s;
+  z-index: 10;
+}
+
+.cell:hover .knobLeft,
+.cell:hover .knobRight {
+  opacity: 1;
+}
+
+.knobLeft:hover, .knobRight:hover {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  transform: translateY(-50%) scale(1.2);
+}
+
+.knobLeft {
+  left: -8px;
+}
+
+.knobRight {
+  right: -8px;
 }
 
 .main {
+  flex: 1;
   display: flex;
   align-items: flex-start;
   padding: 6px 6px 4px 8px;
