@@ -36,6 +36,8 @@ export default function App() {
   const flowBoardRef = useRef(null)
   const svgRef = useRef(null)
   const connPathsRef = useRef(new Map()) // conn.id → <path> DOM element
+  const activeFlowRef = useRef(activeFlow)
+  useEffect(() => { activeFlowRef.current = activeFlow }, [activeFlow])
 
   // Redraw lines on scroll/resize
   useEffect(() => {
@@ -71,8 +73,12 @@ export default function App() {
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
       let bestId = null
-      let bestDist = 14
-      connPathsRef.current.forEach((pathEl, connId) => {
+      let bestDist = 12
+      // Iterate in a stable order (array from activeFlow.connections) so tiebreaks are deterministic
+      const connIds = (activeFlowRef.current?.connections || []).map(c => c.id)
+      for (const connId of connIds) {
+        const pathEl = connPathsRef.current.get(connId)
+        if (!pathEl) continue
         const len = pathEl.getTotalLength()
         const steps = Math.max(20, Math.floor(len / 8))
         for (let i = 0; i <= steps; i++) {
@@ -80,8 +86,8 @@ export default function App() {
           const dist = Math.hypot(pt.x - mx, pt.y - my)
           if (dist < bestDist) { bestDist = dist; bestId = connId }
         }
-      })
-      setHoveredConnId(bestId)
+      }
+      setHoveredConnId(prev => prev === bestId ? prev : bestId)
     }
     const onKey = (e) => {
       if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
@@ -225,10 +231,10 @@ export default function App() {
                   key={conn.id}
                   ref={el => { if (el) connPathsRef.current.set(conn.id, el); else connPathsRef.current.delete(conn.id) }}
                   d={d} fill="none"
-                  stroke={isHovered ? 'var(--accent-yellow)' : 'var(--accent-yellow)'}
-                  strokeWidth={isHovered ? 2.5 : 1.5}
+                  stroke="var(--accent-yellow)"
+                  strokeWidth="1.5"
                   strokeDasharray="5 4"
-                  opacity={isHovered ? 0.9 : 0.5}
+                  opacity={isHovered ? 0.7 : 0.4}
                   markerEnd="url(#arrowConn)"
                 />
               )
