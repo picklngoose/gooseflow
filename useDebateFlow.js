@@ -5,10 +5,10 @@ export const SPEECH_ORDER = [
   { id: '1nc', label: '1NC', side: 'neg', type: 'constructive', time: 480, description: '1st Negative Constructive' },
   { id: '2ac', label: '2AC', side: 'aff', type: 'constructive', time: 480, description: '2nd Affirmative Constructive' },
   { id: '2nc', label: '2NC', side: 'neg', type: 'constructive', time: 480, description: '2nd Negative Constructive' },
-  { id: '1nr', label: '1NR', side: 'neg', type: 'rebuttal', time: 240, description: '1st Negative Rebuttal' },
-  { id: '1ar', label: '1AR', side: 'aff', type: 'rebuttal', time: 240, description: '1st Affirmative Rebuttal' },
-  { id: '2nr', label: '2NR', side: 'neg', type: 'rebuttal', time: 240, description: '2nd Negative Rebuttal' },
-  { id: '2ar', label: '2AR', side: 'aff', type: 'rebuttal', time: 240, description: '2nd Affirmative Rebuttal' },
+  { id: '1nr', label: '1NR', side: 'neg', type: 'rebuttal',     time: 240, description: '1st Negative Rebuttal' },
+  { id: '1ar', label: '1AR', side: 'aff', type: 'rebuttal',     time: 240, description: '1st Affirmative Rebuttal' },
+  { id: '2nr', label: '2NR', side: 'neg', type: 'rebuttal',     time: 240, description: '2nd Negative Rebuttal' },
+  { id: '2ar', label: '2AR', side: 'aff', type: 'rebuttal',     time: 240, description: '2nd Affirmative Rebuttal' },
 ]
 
 const VALID_SPEECH_IDS = new Set(SPEECH_ORDER.map(s => s.id))
@@ -24,13 +24,18 @@ const createFlow = (id) => ({
   id,
   name: 'New Flow',
   speeches: SPEECH_ORDER.map(createSpeech),
+  // connections stored as { id, fromCellId, toCellId }
   connections: [],
   createdAt: Date.now(),
 })
 
 const migrateFlow = (flow) => ({
   ...flow,
-  connections: flow.connections || [],
+  connections: (flow.connections || []).map(c => {
+    // migrate old { from: { cellId }, to: { cellId } } shape → flat shape
+    if (c.fromCellId) return c
+    return { id: c.id, fromCellId: c.from?.cellId, toCellId: c.to?.cellId }
+  }).filter(c => c.fromCellId && c.toCellId),
   speeches: flow.speeches
     .filter(s => VALID_SPEECH_IDS.has(s.id))
     .map(s => ({ ...s, cells: s.cells.map(c => ({ id: c.id, content: c.content || '' })) })),
@@ -138,10 +143,10 @@ export function useDebateFlow() {
     }))
   }, [activeFlowId, updateFlows])
 
+  // Signature matches App.jsx: addConnection(fromCellId, toCellId)
   const addConnection = useCallback((fromCellId, toCellId) => {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
-      // prevent duplicates
       const exists = f.connections.some(c => c.fromCellId === fromCellId && c.toCellId === toCellId)
       if (exists) return f
       return {
