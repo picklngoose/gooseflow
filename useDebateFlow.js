@@ -58,23 +58,21 @@ export function useDebateFlow() {
   })
   const [activeSpeechId, setActiveSpeechId] = useState('1ac')
 
-  const save = useCallback((nextFlows, nextActiveId) => {
-    const f = nextFlows || flows
-    const a = nextActiveId !== undefined ? nextActiveId : activeFlowId
-    try {
-      localStorage.setItem('debate-flows', JSON.stringify(f))
-      localStorage.setItem('debate-active-flow', JSON.stringify(a))
-    } catch {}
-    return f
-  }, [flows, activeFlowId])
+  const persistFlows = useCallback((f) => {
+    try { localStorage.setItem('debate-flows', JSON.stringify(f)) } catch {}
+  }, [])
+
+  const persistActiveId = useCallback((id) => {
+    try { localStorage.setItem('debate-active-flow', JSON.stringify(id)) } catch {}
+  }, [])
 
   const updateFlows = useCallback((updater) => {
     setFlows(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater
-      save(next)
+      persistFlows(next)
       return next
     })
-  }, [save])
+  }, [persistFlows])
 
   const activeFlow = flows.find(f => f.id === activeFlowId) || flows[0]
 
@@ -82,21 +80,19 @@ export function useDebateFlow() {
     const id = `flow-${Date.now()}`
     updateFlows(prev => [...prev, createFlow(id)])
     setActiveFlowId(id)
-    save(null, id)
-  }, [updateFlows, save])
+    persistActiveId(id)
+  }, [updateFlows, persistActiveId])
 
   const deleteFlow = useCallback((id) => {
     updateFlows(prev => {
       const next = prev.filter(f => f.id !== id)
       if (activeFlowId === id && next.length > 0) {
         setActiveFlowId(next[0].id)
-        save(next, next[0].id)
-      } else {
-        save(next)
+        persistActiveId(next[0].id)
       }
       return next
     })
-  }, [activeFlowId, updateFlows, save])
+  }, [activeFlowId, updateFlows, persistActiveId])
 
   const renameFlow = useCallback((id, name) => {
     updateFlows(prev => prev.map(f => f.id === id ? { ...f, name } : f))
@@ -188,7 +184,7 @@ export function useDebateFlow() {
 
   return {
     flows, activeFlow, activeFlowId, activeSpeechId,
-    setActiveFlowId: (id) => { setActiveFlowId(id); save(null, id) },
+    setActiveFlowId: (id) => { setActiveFlowId(id); persistActiveId(id) },
     setActiveSpeechId,
     addFlow, deleteFlow, renameFlow,
     updateCell, addCell, deleteCell,
