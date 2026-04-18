@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PrepTimer, SidebarTimer } from './Timer'
+import { PrepTimer } from './Timer'
 import styles from './Sidebar.module.css'
 
 export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport }) {
@@ -25,22 +25,10 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
       </div>
 
       <div className={styles.section}>
-        <div className={styles.sectionLabel}>Constructives · 8m</div>
+        <div className={styles.sectionLabel}>Speech Timers</div>
         <div className={styles.timerStack}>
-          <SidebarTimer label="1AC" duration={480} side="aff" />
-          <SidebarTimer label="1NC" duration={480} side="neg" />
-          <SidebarTimer label="2AC" duration={480} side="aff" />
-          <SidebarTimer label="2NC" duration={480} side="neg" />
-        </div>
-      </div>
-
-      <div className={styles.section}>
-        <div className={styles.sectionLabel}>Rebuttals · 5m</div>
-        <div className={styles.timerStack}>
-          <SidebarTimer label="1NR" duration={300} side="neg" />
-          <SidebarTimer label="1AR" duration={300} side="aff" />
-          <SidebarTimer label="2NR" duration={300} side="neg" />
-          <SidebarTimer label="2AR" duration={300} side="aff" />
+          <PrepTimer side="aff" label="Constructive" duration={480} />
+          <PrepTimer side="neg" label="Rebuttal" duration={300} />
         </div>
       </div>
 
