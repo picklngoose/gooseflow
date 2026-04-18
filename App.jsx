@@ -15,11 +15,11 @@ export default function App() {
     exportFlow,
   } = useDebateFlow()
 
-
   const [showHelp, setShowHelp] = useState(false)
   const [, forceUpdate] = useState(0)
   const [pendingFrom, setPendingFrom] = useState([])
   const [cursor, setCursor] = useState(null)
+  const [hoveredSpeechId, setHoveredSpeechId] = useState(null)
 
   const cellRefsMap = useRef(new Map())
   const flowBoardRef = useRef(null)
@@ -57,15 +57,13 @@ export default function App() {
       
       if (e.key === 'a' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        // Add cell to the current speech (default to 1ac if none selected)
-        const speechId = activeSpeechId === 'all' ? '1ac' : activeSpeechId
-        addCell(speechId)
+        const speechId = hoveredSpeechId || (activeSpeechId === 'all' ? null : activeSpeechId)
+        if (speechId) addCell(speechId)
       }
       if (e.key === 'b' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        // Add empty space to the current speech
-        const speechId = activeSpeechId === 'all' ? '1ac' : activeSpeechId
-        addEmptySpace(speechId)
+        const speechId = hoveredSpeechId || (activeSpeechId === 'all' ? null : activeSpeechId)
+        if (speechId) addEmptySpace(speechId)
       }
     }
     window.addEventListener('mousemove', onMove)
@@ -74,7 +72,7 @@ export default function App() {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('keydown', onKey)
     }
-  }, [pendingFrom.length])
+  }, [pendingFrom.length, hoveredSpeechId, activeSpeechId, addCell, addEmptySpace])
 
   const handleKnobClick = useCallback((speechId, cellId) => {
     if (pendingFrom.length === 0) {
@@ -264,6 +262,8 @@ export default function App() {
               pendingCellIds={pendingCellIds}
               onKnobClick={showAll ? handleKnobClick : null}
               cellRefsMap={cellRefsMap}
+              onHover={setHoveredSpeechId}
+              isHovered={hoveredSpeechId === speech.id}
             />
           ))}
         </div>
