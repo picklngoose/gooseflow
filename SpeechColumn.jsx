@@ -1,28 +1,13 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
 export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, isHovered, onDragMove }) {
   const items = speech.items || []
-
   const [drag, setDrag] = useState(null)
-  // drag: { itemId, x, y, width, placeholderIndex, content, side }
-
   const itemRefs = useRef({})
-  const dragRef = useRef(null) // mutable, avoids stale closures
-  const floatingRef = useRef(null)
-
-  const calcPlaceholderIndex = useCallback((clientY, excludeId) => {
-    const others = items.filter(it => it.id !== excludeId)
-    for (let i = 0; i < others.length; i++) {
-      const el = itemRefs.current[others[i].id]
-      if (!el) continue
-      const rect = el.getBoundingClientRect()
-      if (clientY < rect.top + rect.height / 2) return i
-    }
-    return others.length
-  }, [items])
+  const dragRef = useRef(null)
 
   const startDrag = useCallback((e, itemId) => {
     if (e.button !== 0) return
@@ -33,19 +18,47 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
     if (!el) return
     const rect = el.getBoundingClientRect()
     const item = items.find(it => it.id === itemId)
+    const offsetY = e.clientY - rect.top
 
-    const initialPlaceholder = calcPlaceholderIndex(e.clientY, itemId)
-
-    dragRef.current = {
-      itemId,
-      offsetY: e.clientY - rect.top,
-      placeholderIndex: initialPlaceholder,
+    // Cache ALL item positions at drag start — prevents oscillation from placeholder shifting
+    const cachedRects = {}
+    for (const it of items) {
+      const itEl = itemRefs.current[it.id]
+      if (itEl) cachedRects[it.id] = itEl.getBoundingClientRect()
     }
+
+    // Create a fake element whose getBoundingClientRect returns live drag position.
+    // This is synchronous — no React render timing dependency.
+    let currentY = e.clientY - offsetY
+    const fakeEl = {
+      getBoundingClientRect: () => ({
+        left: rect.left,
+        right: rect.right,
+        top: currentY,
+        bottom: currentY + rect.height,
+        height: rect.height,
+        width: rect.width,
+      })
+    }
+    cellRefsMap.current.set(itemId, fakeEl)
+
+    const calcPlaceholder = (clientY) => {
+      const others = items.filter(it => it.id !== itemId)
+      for (let i = 0; i < others.length; i++) {
+        const r = cachedRects[others[i].id]
+        if (!r) continue
+        if (clientY - offsetY + rect.height / 2 < r.top + r.height / 2) return i
+      }
+      return others.length
+    }
+
+    const initialPlaceholder = calcPlaceholder(e.clientY)
+    dragRef.current = { itemId, offsetY, placeholderIndex: initialPlaceholder }
 
     setDrag({
       itemId,
       x: rect.left,
-      y: e.clientY - (e.clientY - rect.top),
+      y: currentY,
       width: rect.width,
       placeholderIndex: initialPlaceholder,
       content: item?.content ?? null,
@@ -55,49 +68,44 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
 
     const onMove = (e) => {
       if (!dragRef.current) return
-      const newY = e.clientY - dragRef.current.offsetY
-      const newPlaceholder = calcPlaceholderIndex(e.clientY, dragRef.current.itemId)
+      currentY = e.clientY - dragRef.current.offsetY
+      const newPlaceholder = calcPlaceholder(e.clientY)
       dragRef.current.placeholderIndex = newPlaceholder
 
-      // Move floating element directly via DOM — no React render lag
-      if (floatingRef.current) {
-        floatingRef.current.style.top = newY + 'px'
-        cellRefsMap.current.set(dragRef.current.itemId, floatingRef.current)
-      }
+      // Move floating div directly — synchronous, no React lag
+      const floatingEl = document.getElementById('gooseflow-drag-ghost')
+      if (floatingEl) floatingEl.style.top = currentY + 'px'
 
-      // Only update React state for placeholder index (not position)
-      setDrag(prev => prev ? { ...prev, placeholderIndex: newPlaceholder } : null)
+      setDrag(prev => prev ? { ...prev, y: currentY, placeholderIndex: newPlaceholder } : null)
       if (onDragMove) onDragMove()
     }
 
     const onUp = () => {
       document.removeEventListener('pointermove', onMove)
       document.removeEventListener('pointerup', onUp)
-
       if (!dragRef.current) return
       const { itemId, placeholderIndex } = dragRef.current
       dragRef.current = null
       setDrag(null)
-      // cellRefsMap will be restored by FlowCell's ref callback on next render
 
       const dragged = items.find(it => it.id === itemId)
-      if (!dragged) return
-      const without = items.filter(it => it.id !== itemId)
-      const clamp = Math.min(placeholderIndex, without.length)
-      without.splice(clamp, 0, dragged)
-      onReorderItems(speech.id, without)
+      if (dragged) {
+        const without = items.filter(it => it.id !== itemId)
+        without.splice(Math.min(placeholderIndex, without.length), 0, dragged)
+        onReorderItems(speech.id, without)
+      }
+      // cellRefsMap will be restored by FlowCell ref on next render
     }
 
     document.addEventListener('pointermove', onMove)
     document.addEventListener('pointerup', onUp)
-  }, [items, speech.id, speech.side, calcPlaceholderIndex, onReorderItems])
+  }, [items, speech.id, speech.side, cellRefsMap, onReorderItems, onDragMove])
 
-  // Build display list: remove dragged item, insert placeholder at new index
+  // Build display list with placeholder
   let displayItems = items
   if (drag) {
     const without = items.filter(it => it.id !== drag.itemId)
-    const clamp = Math.min(drag.placeholderIndex, without.length)
-    without.splice(clamp, 0, { id: '__placeholder__', type: 'placeholder' })
+    without.splice(Math.min(drag.placeholderIndex, without.length), 0, { id: '__placeholder__', type: 'placeholder' })
     displayItems = without
   }
 
@@ -116,9 +124,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
           if (item.type === 'placeholder') {
             return (
               <div key="__placeholder__" className={`${styles.placeholder} ${drag?.isSpace ? styles.placeholderSpace : ''}`}>
-                {!drag?.isSpace && drag?.content !== null && (
-                  <span className={styles.placeholderText}>{drag?.content || ''}</span>
-                )}
+                {!drag?.isSpace && <span className={styles.placeholderText}>{drag?.content || ''}</span>}
               </div>
             )
           }
@@ -131,10 +137,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
               onPointerDown={(e) => startDrag(e, item.id)}
             >
               {item.type === 'space' ? (
-                <div
-                  className={styles.emptySpace}
-                  onContextMenu={(e) => { e.preventDefault(); onDeleteEmptySpace(speech.id, item.id) }}
-                />
+                <div className={styles.emptySpace} onContextMenu={(e) => { e.preventDefault(); onDeleteEmptySpace(speech.id, item.id) }} />
               ) : (
                 <FlowCell
                   cell={item}
@@ -154,20 +157,16 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
             </div>
           )
         })}
-
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>+ add</button>
       </div>
 
-      {/* Floating drag element rendered into body via portal */}
       {drag && createPortal(
         <div
-          ref={floatingRef}
+          id="gooseflow-drag-ghost"
           className={`${styles.floatingCell} ${drag.isSpace ? styles.floatingSpace : ''} ${styles[drag.side]}`}
           style={{ top: drag.y, left: drag.x, width: drag.width }}
         >
-          {!drag.isSpace && (
-            <span className={styles.floatingText}>{drag.content || <em className={styles.floatingPlaceholder}>flow...</em>}</span>
-          )}
+          {!drag.isSpace && <span className={styles.floatingText}>{drag.content || <em className={styles.floatingPlaceholder}>flow...</em>}</span>}
         </div>,
         document.body
       )}
