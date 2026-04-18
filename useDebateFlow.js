@@ -13,12 +13,12 @@ export const SPEECH_ORDER = [
 
 const VALID_SPEECH_IDS = new Set(SPEECH_ORDER.map(s => s.id))
 
-const createCell = (id) => ({ id, content: '' })
+const createCell = (id) => ({ id, type: 'cell', content: '' })
+const createSpace = (id) => ({ id, type: 'space' })
 
 const createSpeech = (speechDef) => ({
   ...speechDef,
-  cells: [createCell(`${speechDef.id}-1`)],
-  emptySpaces: [],
+  items: [createCell(`${speechDef.id}-1`)],
 })
 
 const createFlow = (id) => ({
@@ -39,12 +39,14 @@ const migrateFlow = (flow) => ({
     .filter(s => VALID_SPEECH_IDS.has(s.id))
     .map(s => {
       const speechDef = SPEECH_ORDER.find(def => def.id === s.id)
-      return {
-        ...s,
-        ...speechDef,
-        cells: s.cells.map(c => ({ id: c.id, content: c.content || '' })),
-        emptySpaces: s.emptySpaces || [],
-      }
+      const cells = (s.cells || []).map(c => ({ id: c.id, type: 'cell', content: c.content || '' }))
+      const spaces = (s.emptySpaces || []).map(sp => ({ id: sp.id, type: 'space' }))
+      const items = s.items
+        ? s.items.map(it => it.type === 'cell'
+            ? { id: it.id, type: 'cell', content: it.content || '' }
+            : { id: it.id, type: 'space' })
+        : [...cells, ...spaces]
+      return { ...s, ...speechDef, items }
     }),
 })
 
@@ -117,7 +119,7 @@ export function useDebateFlow() {
         ...f,
         speeches: f.speeches.map(s => {
           if (s.id !== speechId) return s
-          return { ...s, cells: s.cells.map(c => c.id === cellId ? { ...c, ...updates } : c) }
+          return { ...s, items: s.items.map(it => it.id === cellId ? { ...it, ...updates } : it) }
         })
       }
     }))
@@ -130,7 +132,7 @@ export function useDebateFlow() {
         ...f,
         speeches: f.speeches.map(s => {
           if (s.id !== speechId) return s
-          return { ...s, cells: [...s.cells, createCell(`${speechId}-${Date.now()}`)] }
+          return { ...s, items: [...s.items, createCell(`${speechId}-${Date.now()}`)] }
         })
       }
     }))
@@ -144,8 +146,9 @@ export function useDebateFlow() {
         connections: f.connections.filter(c => c.fromCellId !== cellId && c.toCellId !== cellId),
         speeches: f.speeches.map(s => {
           if (s.id !== speechId) return s
-          if (s.cells.length <= 1) return s
-          return { ...s, cells: s.cells.filter(c => c.id !== cellId) }
+          const cellCount = s.items.filter(it => it.type === 'cell').length
+          if (cellCount <= 1) return s
+          return { ...s, items: s.items.filter(it => it.id !== cellId) }
         })
       }
     }))
@@ -158,7 +161,7 @@ export function useDebateFlow() {
         ...f,
         speeches: f.speeches.map(s => {
           if (s.id !== speechId) return s
-          return { ...s, emptySpaces: [...s.emptySpaces, { id: `${speechId}-space-${Date.now()}` }] }
+          return { ...s, items: [...s.items, createSpace(`${speechId}-space-${Date.now()}`)] }
         })
       }
     }))
@@ -171,7 +174,7 @@ export function useDebateFlow() {
         ...f,
         speeches: f.speeches.map(s => {
           if (s.id !== speechId) return s
-          return { ...s, emptySpaces: s.emptySpaces.filter(sp => sp.id !== spaceId) }
+          return { ...s, items: s.items.filter(it => it.id !== spaceId) }
         })
       }
     }))
@@ -205,7 +208,7 @@ export function useDebateFlow() {
     activeFlow.speeches.forEach(speech => {
       lines.push(`\n[${speech.label}] ${speech.description}`)
       lines.push('-'.repeat(40))
-      speech.cells.forEach((cell, i) => {
+      speech.items.filter(it => it.type === 'cell').forEach((cell, i) => {
         lines.push(`${i + 1}.`)
         if (cell.content) lines.push(`   ${cell.content.replace(/\n/g, '\n   ')}`)
       })
