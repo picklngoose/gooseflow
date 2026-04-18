@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
@@ -100,7 +99,6 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
     >
       <div className={styles.header}>
         <span className={`${styles.label} ${styles[speech.side]}`}>{speech.label}</span>
-        <Timer key={speech.id} duration={speech.time} side={speech.side} />
       </div>
 
       <div className={styles.cells}>
