@@ -10,12 +10,12 @@ export default function App() {
     setActiveFlowId, setActiveSpeechId,
     addFlow, deleteFlow, renameFlow,
     updateCell, addCell, deleteCell,
+    addEmptySpace, deleteEmptySpace,
     addConnection, removeConnection,
     exportFlow,
   } = useDebateFlow()
 
-  const [pendingFrom, setPendingFrom] = useState([])
-  const [cursor, setCursor] = useState(null)
+  const [showHelp, setShowHelp] = useState(false)
   const [, forceUpdate] = useState(0)
 
   const cellRefsMap = useRef(new Map())
@@ -49,6 +49,21 @@ export default function App() {
     }
     const onKey = (e) => {
       if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
+      // Only handle shortcuts when no input is focused
+      if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return
+      
+      if (e.key === 'a' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        // Add cell to the current speech (default to 1ac if none selected)
+        const speechId = activeSpeechId === 'all' ? '1ac' : activeSpeechId
+        addCell(speechId)
+      }
+      if (e.key === 'b' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        // Add empty space to the current speech
+        const speechId = activeSpeechId === 'all' ? '1ac' : activeSpeechId
+        addEmptySpace(speechId)
+      }
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('keydown', onKey)
@@ -149,6 +164,11 @@ export default function App() {
               className={`${styles.viewBtn} ${!showAll ? styles.activeView : ''}`}
               onClick={() => { if (showAll) setActiveSpeechId('1ac') }}
             >Single</button>
+            <button
+              className={styles.helpBtn}
+              onClick={() => setShowHelp(!showHelp)}
+              title="Help & Shortcuts"
+            >💡</button>
           </div>
         </div>
 
@@ -236,6 +256,8 @@ export default function App() {
               onUpdateCell={updateCell}
               onAddCell={addCell}
               onDeleteCell={deleteCell}
+              onAddEmptySpace={addEmptySpace}
+              onDeleteEmptySpace={deleteEmptySpace}
               pendingCellIds={pendingCellIds}
               onKnobClick={showAll ? handleKnobClick : null}
               cellRefsMap={cellRefsMap}
@@ -248,6 +270,70 @@ export default function App() {
             {pendingFrom.length === 1
               ? 'click a knob on another speech to connect · right-click a line to delete · Esc to cancel'
               : `${pendingFrom.length} grouped · click a knob in another speech to connect all · Esc to cancel`}
+          </div>
+        )}
+
+        {showHelp && (
+          <div className={styles.helpModal} onClick={() => setShowHelp(false)}>
+            <div className={styles.helpContent} onClick={(e) => e.stopPropagation()}>
+              <h3>Keyboard Shortcuts & Help</h3>
+              <div className={styles.helpSection}>
+                <h4>Adding Content</h4>
+                <div className={styles.shortcut}>
+                  <kbd>a</kbd>
+                  <span>Add a new argument cell below</span>
+                </div>
+                <div className={styles.shortcut}>
+                  <kbd>b</kbd>
+                  <span>Add an empty space</span>
+                </div>
+              </div>
+              <div className={styles.helpSection}>
+                <h4>Cells</h4>
+                <div className={styles.shortcut}>
+                  <kbd>Ctrl+Enter</kbd>
+                  <span>Add argument below (when editing)</span>
+                </div>
+                <div className={styles.shortcut}>
+                  <kbd>Ctrl+Backspace</kbd>
+                  <span>Delete empty cell (when editing)</span>
+                </div>
+                <div className={styles.shortcut}>
+                  <kbd>Right-click</kbd>
+                  <span>Delete cell</span>
+                </div>
+              </div>
+              <div className={styles.helpSection}>
+                <h4>Empty Spaces</h4>
+                <div className={styles.shortcut}>
+                  <kbd>Right-click</kbd>
+                  <span>Delete empty space</span>
+                </div>
+              </div>
+              <div className={styles.helpSection}>
+                <h4>Connections</h4>
+                <div className={styles.shortcut}>
+                  <span>Hover over cell knobs</span>
+                  <span>Click knobs to create connections</span>
+                </div>
+                <div className={styles.shortcut}>
+                  <kbd>Right-click</kbd>
+                  <span>Delete connection line</span>
+                </div>
+                <div className={styles.shortcut}>
+                  <kbd>Esc</kbd>
+                  <span>Cancel connection drawing</span>
+                </div>
+              </div>
+              <div className={styles.helpSection}>
+                <h4>Navigation</h4>
+                <div className={styles.shortcut}>
+                  <kbd>Double-click</kbd>
+                  <span>Rename flow (on flow title)</span>
+                </div>
+              </div>
+              <button className={styles.closeHelp} onClick={() => setShowHelp(false)}>Close</button>
+            </div>
           </div>
         )}
       </main>

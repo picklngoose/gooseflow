@@ -15,9 +15,12 @@ const VALID_SPEECH_IDS = new Set(SPEECH_ORDER.map(s => s.id))
 
 const createCell = (id) => ({ id, content: '' })
 
+const createEmptySpace = (id) => ({ id, type: 'empty' })
+
 const createSpeech = (speechDef) => ({
   ...speechDef,
   cells: [createCell(`${speechDef.id}-1`)],
+  emptySpaces: [],
 })
 
 const createFlow = (id) => ({
@@ -41,7 +44,8 @@ const migrateFlow = (flow) => ({
       return {
         ...s,
         ...speechDef, // This will update time and other properties from SPEECH_ORDER
-        cells: s.cells.map(c => ({ id: c.id, content: c.content || '' }))
+        cells: s.cells.map(c => ({ id: c.id, content: c.content || '' })),
+        emptySpaces: s.emptySpaces || [],
       }
     }),
 })
@@ -178,6 +182,32 @@ export function useDebateFlow() {
     }))
   }, [activeFlowId, pushHistory])
 
+  const addEmptySpace = useCallback((speechId) => {
+    pushHistory(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      return {
+        ...f,
+        speeches: f.speeches.map(s => {
+          if (s.id !== speechId) return s
+          return { ...s, emptySpaces: [...s.emptySpaces, createEmptySpace(`${speechId}-space-${Date.now()}`)] }
+        })
+      }
+    }))
+  }, [activeFlowId, pushHistory])
+
+  const deleteEmptySpace = useCallback((speechId, spaceId) => {
+    pushHistory(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      return {
+        ...f,
+        speeches: f.speeches.map(s => {
+          if (s.id !== speechId) return s
+          return { ...s, emptySpaces: s.emptySpaces.filter(space => space.id !== spaceId) }
+        })
+      }
+    }))
+  }, [activeFlowId, pushHistory])
+
   const addConnection = useCallback((fromCellId, toCellId) => {
     pushHistory(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
@@ -226,6 +256,7 @@ export function useDebateFlow() {
     setActiveSpeechId,
     addFlow, deleteFlow, renameFlow,
     updateCell, addCell, deleteCell,
+    addEmptySpace, deleteEmptySpace,
     addConnection, removeConnection,
     exportFlow,
     canUndo: historyIndex > 0,

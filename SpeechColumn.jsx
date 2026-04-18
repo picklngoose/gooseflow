@@ -2,7 +2,7 @@ import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, pendingCellIds, onKnobClick, cellRefsMap }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, pendingCellIds, onKnobClick, cellRefsMap }) {
   return (
     <div className={`${styles.column} ${styles[speech.side]}`}>
       <div className={styles.header}>
@@ -26,6 +26,17 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, pe
               if (el) cellRefsMap.current.set(cell.id, el)
               else cellRefsMap.current.delete(cell.id)
             }}
+          />
+        ))}
+        {speech.emptySpaces?.map(space => (
+          <div
+            key={space.id}
+            className={styles.emptySpace}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              onDeleteEmptySpace(speech.id, space.id)
+            }}
+            title="Right-click to delete empty space"
           />
         ))}
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>+ add</button>
