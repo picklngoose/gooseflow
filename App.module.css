@@ -99,8 +99,8 @@
   z-index: 10;
 }
 
-/* Individual SVG children opt in to pointer events as needed */
-.lineOverlay * {
+/* Visual paths never intercept clicks — SVG handles it via onContextMenu */
+.lineOverlay path, .lineOverlay marker {
   pointer-events: none;
 }
 
