@@ -47,33 +47,22 @@
 }
 
 .itemWrapper {
-  position: relative;
   cursor: grab;
   user-select: none;
+  touch-action: none;
+  border-radius: var(--radius);
 }
 
 .itemWrapper:active {
   cursor: grabbing;
 }
 
-.itemWrapper.dragging {
-  opacity: 0.25;
-}
-
-.itemWrapper.insertBefore::before {
-  content: '';
-  display: block;
-  height: 2px;
-  background: var(--border-bright);
-  border-radius: 2px;
-  margin-bottom: 3px;
-}
-
-.insertBefore {
-  height: 2px;
-  background: var(--border-bright);
-  border-radius: 2px;
-  margin: 2px 0;
+/* Placeholder gap where the item will be dropped */
+.placeholder {
+  border: 1.5px dashed var(--border-bright);
+  border-radius: var(--radius);
+  opacity: 0.4;
+  transition: height 0.1s;
 }
 
 .emptySpace {
@@ -81,40 +70,6 @@
   background: transparent;
   border: none;
   cursor: grab;
-}
-
-/* Ghost element that follows the cursor */
-.ghost {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%) translateY(-50%);
-  min-width: 180px;
-  max-width: 260px;
-  background: var(--bg-3);
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius);
-  padding: 5px 8px;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.85;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-}
-
-.ghostSpace {
-  height: 20px;
-  background: var(--bg-2);
-  padding: 0;
-}
-
-.ghostText {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-  max-width: 240px;
 }
 
 .addCell {
