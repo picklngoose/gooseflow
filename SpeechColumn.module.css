@@ -47,17 +47,9 @@
 
 .emptySpace {
   height: 20px;
-  background: var(--bg-2);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  opacity: 0.5;
-  transition: opacity 0.15s, border-color 0.15s;
-  cursor: pointer;
-}
-
-.emptySpace:hover {
-  opacity: 0.8;
-  border-color: var(--border-bright);
+  background: transparent;
+  border: none;
+  cursor: default;
 }
 
 .addCell {
