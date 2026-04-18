@@ -41,8 +41,8 @@ export function SidebarTimer({ label, duration, side }) {
   )
 }
 
-export function PrepTimer({ side, label }) {
-  const [remaining, setRemaining] = useState(300)
+export function PrepTimer({ side, label, duration = 300 }) {
+  const [remaining, setRemaining] = useState(duration)
   const [running, setRunning] = useState(false)
   const intervalRef = useRef(null)
 
@@ -52,9 +52,9 @@ export function PrepTimer({ side, label }) {
   }, [running])
 
   const toggle = useCallback(() => setRunning(r => !r), [])
-  const reset = useCallback(() => { setRemaining(300); setRunning(false) }, [])
+  const reset = useCallback(() => { setRemaining(duration); setRunning(false) }, [duration])
 
-  const pct = remaining / 300
+  const pct = remaining / duration
   const low = remaining <= 60
 
   return (
