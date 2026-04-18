@@ -29,6 +29,7 @@ export default function App() {
   const [cursor, setCursor] = useState(null)
   const [hoveredSpeechId, setHoveredSpeechId] = useState(null)
   const [, forceUpdate] = useState(0)
+  const hoveredCellRef = useRef(null) // { speechId, cellId }
 
   const cellRefsMap = useRef(new Map())
   const flowBoardRef = useRef(null)
@@ -69,6 +70,11 @@ export default function App() {
         e.preventDefault()
         const speechId = hoveredSpeechId || null
         if (speechId) addEmptySpace(speechId)
+      }
+      if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        const hovered = hoveredCellRef.current
+        if (hovered) handleKnobClick(hovered.speechId, hovered.cellId)
       }
     }
     window.addEventListener('mousemove', onMove)
@@ -203,6 +209,7 @@ export default function App() {
               onKnobClick={handleKnobClick}
               cellRefsMap={cellRefsMap}
               onHover={setHoveredSpeechId}
+              onCellHover={(speechId, cellId) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId } : null }}
               isHovered={hoveredSpeechId === speech.id}
               onDragMove={() => forceUpdate(n => n + 1)}
             />
@@ -224,6 +231,7 @@ export default function App() {
               <div className={styles.helpSection}>
                 <div className={styles.shortcut}><kbd>a</kbd><span>Add argument to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>b</kbd><span>Add spacer to hovered column</span></div>
+                <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target)</span></div>
                 <div className={styles.shortcut}><kbd>Ctrl+Enter</kbd><span>New argument below (in cell)</span></div>
                 <div className={styles.shortcut}><kbd>Right-click cell</kbd><span>Delete cell</span></div>
                 <div className={styles.shortcut}><kbd>Right-click line</kbd><span>Delete connection</span></div>
