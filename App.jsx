@@ -16,6 +16,8 @@ export default function App() {
   } = useDebateFlow()
 
   const [showHelp, setShowHelp] = useState(false)
+  const [pendingFrom, setPendingFrom] = useState([])
+  const [cursor, setCursor] = useState(null)
   const [, forceUpdate] = useState(0)
 
   const cellRefsMap = useRef(new Map())
@@ -41,6 +43,9 @@ export default function App() {
 
   useEffect(() => {
     const onMove = (e) => {
+      // Always trigger a forceUpdate to keep connections in sync with dragged cells
+      forceUpdate(n => n + 1)
+      
       if (pendingFrom.length === 0) return
       const svgEl = svgRef.current
       if (!svgEl) return
@@ -71,7 +76,7 @@ export default function App() {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('keydown', onKey)
     }
-  }, [pendingFrom.length])
+  }, [pendingFrom.length, activeSpeechId, addCell, addEmptySpace])
 
   const handleKnobClick = useCallback((speechId, cellId) => {
     if (pendingFrom.length === 0) {
