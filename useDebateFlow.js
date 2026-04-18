@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 
 export const SPEECH_ORDER = [
   { id: '1ac', label: '1AC', side: 'aff', type: 'constructive', time: 480, description: '1st Affirmative Constructive' },
@@ -13,14 +13,12 @@ export const SPEECH_ORDER = [
 
 const VALID_SPEECH_IDS = new Set(SPEECH_ORDER.map(s => s.id))
 
-const createCell = (id) => ({ id, content: '' })
-
-const createEmptySpace = (id) => ({ id, type: 'empty' })
+const createCell  = (id) => ({ id, type: 'cell',  content: '' })
+const createSpace = (id) => ({ id, type: 'space' })
 
 const createSpeech = (speechDef) => ({
   ...speechDef,
-  cells: [createCell(`${speechDef.id}-1`)],
-  emptySpaces: [],
+  items: [createCell(`${speechDef.id}-1`)],
 })
 
 const createFlow = (id) => ({
@@ -31,26 +29,32 @@ const createFlow = (id) => ({
   createdAt: Date.now(),
 })
 
+// Convert any old saved format to the new items[] format
 const migrateFlow = (flow) => ({
   ...flow,
-  connections: (flow.connections || []).map(c => {
-    if (c.fromCellId) return c
-    return { id: c.id, fromCellId: c.from?.cellId, toCellId: c.to?.cellId }
-  }).filter(c => c.fromCellId && c.toCellId),
+  connections: (flow.connections || []).map(c =>
+    c.fromCellId ? c : { id: c.id, fromCellId: c.from?.cellId, toCellId: c.to?.cellId }
+  ).filter(c => c.fromCellId && c.toCellId),
   speeches: flow.speeches
     .filter(s => VALID_SPEECH_IDS.has(s.id))
     .map(s => {
       const speechDef = SPEECH_ORDER.find(def => def.id === s.id)
-      return {
-        ...s,
-        ...speechDef, // This will update time and other properties from SPEECH_ORDER
-        cells: s.cells.map(c => ({ id: c.id, content: c.content || '' })),
-        emptySpaces: s.emptySpaces || [],
+      let items
+      if (s.items) {
+        items = s.items.map(it =>
+          it.type === 'space' ? { id: it.id, type: 'space' }
+                              : { id: it.id, type: 'cell', content: it.content || '' }
+        )
+      } else {
+        const cells  = (s.cells       || []).map(c  => ({ id: c.id,  type: 'cell',  content: c.content || '' }))
+        const spaces = (s.emptySpaces || []).map(sp => ({ id: sp.id, type: 'space' }))
+        items = [...cells, ...spaces]
       }
+      return { ...s, ...speechDef, items }
     }),
 })
 
-const loadFlows = () => {
+const load = () => {
   try {
     const saved = localStorage.getItem('debate-flows')
     if (saved) return JSON.parse(saved).map(migrateFlow)
@@ -66,187 +70,121 @@ const loadActiveId = () => {
   return 'flow-1'
 }
 
-const persistFlows = (f) => {
-  try { localStorage.setItem('debate-flows', JSON.stringify(f)) } catch {}
+const persist = (flows, activeId) => {
+  try {
+    localStorage.setItem('debate-flows', JSON.stringify(flows))
+    if (activeId !== undefined) localStorage.setItem('debate-active-flow', JSON.stringify(activeId))
+  } catch {}
 }
-
-const persistActiveId = (id) => {
-  try { localStorage.setItem('debate-active-flow', JSON.stringify(id)) } catch {}
-}
-
-const MAX_HISTORY = 50
 
 export function useDebateFlow() {
-  const [history, setHistory] = useState(() => [loadFlows()])
-  const [historyIndex, setHistoryIndex] = useState(0)
+  const [flows, setFlows] = useState(load)
   const [activeFlowId, setActiveFlowId] = useState(loadActiveId)
   const [activeSpeechId, setActiveSpeechId] = useState('1ac')
 
-  const flows = history[historyIndex]
-
-  const pushHistory = useCallback((updater) => {
-    setHistory(prev => {
-      const current = prev[historyIndex]
-      const next = typeof updater === 'function' ? updater(current) : updater
-      // drop any future states beyond current index
-      const trimmed = prev.slice(0, historyIndex + 1)
-      const newHistory = [...trimmed, next].slice(-MAX_HISTORY)
-      persistFlows(next)
-      return newHistory
-    })
-    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1))
-  }, [historyIndex])
-
-  const undo = useCallback(() => {
-    setHistoryIndex(prev => {
-      const next = Math.max(0, prev - 1)
-      persistFlows(history[next])
+  const updateFlows = useCallback((updater) => {
+    setFlows(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      persist(next)
       return next
     })
-  }, [history])
-
-  // Cmd+Z / Ctrl+Z global listener
-  useEffect(() => {
-    const onKey = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault()
-        undo()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [undo])
+  }, [])
 
   const activeFlow = flows.find(f => f.id === activeFlowId) || flows[0]
 
   const addFlow = useCallback(() => {
     const id = `flow-${Date.now()}`
-    pushHistory(prev => [...prev, createFlow(id)])
+    updateFlows(prev => [...prev, createFlow(id)])
     setActiveFlowId(id)
-    persistActiveId(id)
-  }, [pushHistory])
+    persist(null, id)
+  }, [updateFlows])
 
   const deleteFlow = useCallback((id) => {
-    pushHistory(prev => {
+    updateFlows(prev => {
       const next = prev.filter(f => f.id !== id)
       if (activeFlowId === id && next.length > 0) {
         setActiveFlowId(next[0].id)
-        persistActiveId(next[0].id)
+        persist(next, next[0].id)
+      } else {
+        persist(next)
       }
       return next
     })
-  }, [activeFlowId, pushHistory])
+  }, [activeFlowId, updateFlows])
 
   const renameFlow = useCallback((id, name) => {
-    pushHistory(prev => prev.map(f => f.id === id ? { ...f, name } : f))
-  }, [pushHistory])
+    updateFlows(prev => prev.map(f => f.id === id ? { ...f, name } : f))
+  }, [updateFlows])
+
+  const updateSpeechItems = useCallback((speechId, fn) => {
+    updateFlows(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      return {
+        ...f,
+        speeches: f.speeches.map(s => s.id !== speechId ? s : { ...s, items: fn(s.items) })
+      }
+    }))
+  }, [activeFlowId, updateFlows])
 
   const updateCell = useCallback((speechId, cellId, updates) => {
-    pushHistory(prev => prev.map(f => {
-      if (f.id !== activeFlowId) return f
-      return {
-        ...f,
-        speeches: f.speeches.map(s => {
-          if (s.id !== speechId) return s
-          return { ...s, cells: s.cells.map(c => c.id === cellId ? { ...c, ...updates } : c) }
-        })
-      }
-    }))
-  }, [activeFlowId, pushHistory])
+    updateSpeechItems(speechId, items =>
+      items.map(it => it.id === cellId ? { ...it, ...updates } : it)
+    )
+  }, [updateSpeechItems])
 
   const addCell = useCallback((speechId) => {
-    pushHistory(prev => prev.map(f => {
-      if (f.id !== activeFlowId) return f
-      return {
-        ...f,
-        speeches: f.speeches.map(s => {
-          if (s.id !== speechId) return s
-          return { ...s, cells: [...s.cells, createCell(`${speechId}-${Date.now()}`)] }
-        })
-      }
-    }))
-  }, [activeFlowId, pushHistory])
+    updateSpeechItems(speechId, items => [...items, createCell(`${speechId}-${Date.now()}`)])
+  }, [updateSpeechItems])
 
   const deleteCell = useCallback((speechId, cellId) => {
-    pushHistory(prev => prev.map(f => {
+    updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
       return {
         ...f,
         connections: f.connections.filter(c => c.fromCellId !== cellId && c.toCellId !== cellId),
         speeches: f.speeches.map(s => {
           if (s.id !== speechId) return s
-          if (s.cells.length <= 1) return s
-          return { ...s, cells: s.cells.filter(c => c.id !== cellId) }
+          const cellCount = s.items.filter(it => it.type === 'cell').length
+          if (cellCount <= 1) return s
+          return { ...s, items: s.items.filter(it => it.id !== cellId) }
         })
-      }
-    }))
-  }, [activeFlowId, pushHistory])
-
-  const addEmptySpace = useCallback((speechId) => {
-    pushHistory(prev => prev.map(f => {
-      if (f.id !== activeFlowId) return f
-      return {
-        ...f,
-        speeches: f.speeches.map(s => {
-          if (s.id !== speechId) return s
-          return { ...s, emptySpaces: [...s.emptySpaces, createEmptySpace(`${speechId}-space-${Date.now()}`)] }
-        })
-      }
-    }))
-  }, [activeFlowId, pushHistory])
-
-  const deleteEmptySpace = useCallback((speechId, spaceId) => {
-    pushHistory(prev => prev.map(f => {
-      if (f.id !== activeFlowId) return f
-      return {
-        ...f,
-        speeches: f.speeches.map(s => {
-          if (s.id !== speechId) return s
-          return { ...s, emptySpaces: s.emptySpaces.filter(space => space.id !== spaceId) }
-        })
-      }
-    }))
-  }, [activeFlowId, pushHistory])
-
-  const addConnection = useCallback((fromCellId, toCellId) => {
-    pushHistory(prev => prev.map(f => {
-      if (f.id !== activeFlowId) return f
-      const exists = f.connections.some(c => c.fromCellId === fromCellId && c.toCellId === toCellId)
-      if (exists) return f
-      return {
-        ...f,
-        connections: [...f.connections, { id: `conn-${Date.now()}`, fromCellId, toCellId }]
-      }
-    }))
-  }, [activeFlowId, pushHistory])
-
-  const removeConnection = useCallback((connId) => {
-    pushHistory(prev => prev.map(f => {
-      if (f.id !== activeFlowId) return f
-      return { ...f, connections: f.connections.filter(c => c.id !== connId) }
-    }))
-  }, [activeFlowId, pushHistory])
-
-  const reorderItems = useCallback((speechId, newItems) => {
-    updateFlows(prev => prev.map(f => {
-      if (f.id !== activeFlowId) return f
-      return {
-        ...f,
-        speeches: f.speeches.map(s => s.id !== speechId ? s : { ...s, items: newItems })
       }
     }))
   }, [activeFlowId, updateFlows])
 
-    const exportFlow = useCallback(() => {
+  const addEmptySpace = useCallback((speechId) => {
+    updateSpeechItems(speechId, items => [...items, createSpace(`${speechId}-space-${Date.now()}`)])
+  }, [updateSpeechItems])
+
+  const deleteEmptySpace = useCallback((speechId, spaceId) => {
+    updateSpeechItems(speechId, items => items.filter(it => it.id !== spaceId))
+  }, [updateSpeechItems])
+
+  const reorderItems = useCallback((speechId, newItems) => {
+    updateSpeechItems(speechId, () => newItems)
+  }, [updateSpeechItems])
+
+  const addConnection = useCallback((fromCellId, toCellId) => {
+    updateFlows(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      if (f.connections.some(c => c.fromCellId === fromCellId && c.toCellId === toCellId)) return f
+      return { ...f, connections: [...f.connections, { id: `conn-${Date.now()}`, fromCellId, toCellId }] }
+    }))
+  }, [activeFlowId, updateFlows])
+
+  const removeConnection = useCallback((connId) => {
+    updateFlows(prev => prev.map(f => {
+      if (f.id !== activeFlowId) return f
+      return { ...f, connections: f.connections.filter(c => c.id !== connId) }
+    }))
+  }, [activeFlowId, updateFlows])
+
+  const exportFlow = useCallback(() => {
     if (!activeFlow) return
-    const lines = []
-    lines.push(`DEBATE FLOW: ${activeFlow.name}`)
-    lines.push(`Exported: ${new Date().toLocaleString()}`)
-    lines.push('='.repeat(60))
+    const lines = [`DEBATE FLOW: ${activeFlow.name}`, `Exported: ${new Date().toLocaleString()}`, '='.repeat(60)]
     activeFlow.speeches.forEach(speech => {
-      lines.push(`\n[${speech.label}] ${speech.description}`)
-      lines.push('-'.repeat(40))
-      speech.cells.forEach((cell, i) => {
+      lines.push(`\n[${speech.label}] ${speech.description}`, '-'.repeat(40))
+      speech.items.filter(it => it.type === 'cell').forEach((cell, i) => {
         lines.push(`${i + 1}.`)
         if (cell.content) lines.push(`   ${cell.content.replace(/\n/g, '\n   ')}`)
       })
@@ -262,15 +200,13 @@ export function useDebateFlow() {
 
   return {
     flows, activeFlow, activeFlowId, activeSpeechId,
-    setActiveFlowId: (id) => { setActiveFlowId(id); persistActiveId(id) },
+    setActiveFlowId: (id) => { setActiveFlowId(id); persist(null, id) },
     setActiveSpeechId,
     addFlow, deleteFlow, renameFlow,
     updateCell, addCell, deleteCell,
     addEmptySpace, deleteEmptySpace,
-    addConnection, removeConnection,
     reorderItems,
+    addConnection, removeConnection,
     exportFlow,
-    canUndo: historyIndex > 0,
-    undo,
   }
 }
