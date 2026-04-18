@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PrepTimer } from './Timer'
+import { PrepTimer, SidebarTimer } from './Timer'
 import styles from './Sidebar.module.css'
 
 export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport }) {
@@ -18,9 +18,29 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
 
       <div className={styles.section}>
         <div className={styles.sectionLabel}>Prep Time</div>
-        <div className={styles.prepTimers}>
+        <div className={styles.timerStack}>
           <PrepTimer side="aff" label="Aff" />
           <PrepTimer side="neg" label="Neg" />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.sectionLabel}>Constructives · 8m</div>
+        <div className={styles.timerStack}>
+          <SidebarTimer label="1AC" duration={480} side="aff" />
+          <SidebarTimer label="1NC" duration={480} side="neg" />
+          <SidebarTimer label="2AC" duration={480} side="aff" />
+          <SidebarTimer label="2NC" duration={480} side="neg" />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.sectionLabel}>Rebuttals · 5m</div>
+        <div className={styles.timerStack}>
+          <SidebarTimer label="1NR" duration={300} side="neg" />
+          <SidebarTimer label="1AR" duration={300} side="aff" />
+          <SidebarTimer label="2NR" duration={300} side="neg" />
+          <SidebarTimer label="2AR" duration={300} side="aff" />
         </div>
       </div>
 
