@@ -94,7 +94,15 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
         without.splice(Math.min(placeholderIndex, without.length), 0, dragged)
         onReorderItems(speech.id, without)
       }
-      // cellRefsMap will be restored by FlowCell ref on next render
+      // cellRefsMap will be restored by FlowCell ref on next render.
+      // Fire onDragMove on the next two animation frames so the SVG lines
+      // redraw after React has committed the real DOM refs.
+      if (onDragMove) {
+        requestAnimationFrame(() => {
+          onDragMove()
+          requestAnimationFrame(() => onDragMove())
+        })
+      }
     }
 
     document.addEventListener('pointermove', onMove)
