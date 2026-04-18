@@ -23,9 +23,7 @@ export function Sidebar({
   }
 
   const commitEdit = () => {
-    if (editingName.trim()) {
-      onRenameFlow(editingId, editingName.trim())
-    }
+    if (editingName.trim()) onRenameFlow(editingId, editingName.trim())
     setEditingId(null)
   }
 
@@ -33,11 +31,9 @@ export function Sidebar({
     <aside className={styles.sidebar}>
       <div className={styles.logo}>
         <span className={styles.logoMark}>⬡</span>
-        <span className={styles.logoText}>DebateFlow</span>
-        <span className={styles.logoSub}>Policy</span>
+        <span className={styles.logoText}>gooseflow</span>
       </div>
 
-      {/* Prep Timers */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>Prep Time</div>
         <div className={styles.prepTimers}>
@@ -46,7 +42,6 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Flows */}
       <div className={styles.section}>
         <div className={styles.sectionLabel}>Flows</div>
         <div className={styles.flows}>
@@ -85,35 +80,31 @@ export function Sidebar({
               </div>
             </div>
           ))}
-          <button className={styles.addFlow} onClick={onAddFlow}>+ New Flow</button>
+          <button className={styles.addFlow} onClick={onAddFlow}>+ new flow</button>
         </div>
       </div>
 
-      {/* Speech Navigation */}
-      <div className={`${styles.section} ${styles.speechNav}`}>
-        <div className={styles.sectionLabel}>Speeches</div>
-        <div className={styles.speeches}>
-          {SPEECH_ORDER.map(s => (
-            <button
-              key={s.id}
-              className={`${styles.speechBtn} ${styles[s.side]} ${s.id === activeSpeechId ? styles.activeSpeech : ''} ${s.type === 'cx' ? styles.cxBtn : ''}`}
-              onClick={() => onSelectSpeech(s.id)}
-              title={s.description}
-            >
-              <span className={styles.speechLabel}>{s.label}</span>
-              {s.type !== 'cx' && (
+      {activeSpeechId !== 'all' && (
+        <div className={`${styles.section} ${styles.speechNav}`}>
+          <div className={styles.sectionLabel}>Speeches</div>
+          <div className={styles.speeches}>
+            {SPEECH_ORDER.map(s => (
+              <button
+                key={s.id}
+                className={`${styles.speechBtn} ${styles[s.side]} ${s.id === activeSpeechId ? styles.activeSpeech : ''}`}
+                onClick={() => onSelectSpeech(s.id)}
+                title={s.description}
+              >
+                <span className={styles.speechLabel}>{s.label}</span>
                 <span className={styles.speechTime}>{s.time / 60}m</span>
-              )}
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.footer}>
-        <button className={styles.exportBtn} onClick={onExport}>
-          ↓ Export Flow
-        </button>
-        <div className={styles.hint}>Ctrl+Enter: new argument</div>
+        <button className={styles.exportBtn} onClick={onExport}>↓ export</button>
       </div>
     </aside>
   )

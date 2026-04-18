@@ -2,11 +2,13 @@
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
-  transition: border-color 0.15s, background 0.15s;
-  position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  padding: 5px 8px;
+  gap: 4px;
+  transition: border-color 0.15s;
+  position: relative;
+  overflow: visible;
 }
 
 .cell:hover {
@@ -21,165 +23,55 @@
   border-left: 2px solid var(--accent-neg-dim);
 }
 
-.cell.dropped {
-  opacity: 0.55;
-  background: var(--tag-red);
-  border-color: var(--accent-neg-dim);
-}
-
-.cell.dropped .textarea {
-  text-decoration: line-through;
-  color: var(--text-2);
-}
-
 .cell.selected {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px var(--accent-blue);
+  border-color: var(--accent-yellow) !important;
+  background: #1a1506 !important;
+  box-shadow: 0 0 0 1px var(--accent-yellow);
 }
 
-.knobLeft, .knobRight {
+.textarea {
+  flex: 1;
+  min-height: 32px;
+  line-height: 1.5;
+  padding: 0;
+  font-size: 12px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+/* Connect knob — sits on the right edge, outside the cell border */
+.knob {
   position: absolute;
+  right: -7px;
   top: 50%;
   transform: translateY(-50%);
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--bg-2);
-  border: 2px solid var(--border);
-  cursor: pointer;
-  opacity: 1;
-  transition: all 0.15s;
-  z-index: 10;
-}
-
-.cell:hover .knobLeft,
-.cell:hover .knobRight {
-  opacity: 1;
-}
-
-.knobLeft:hover, .knobRight:hover {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  transform: translateY(-50%) scale(1.2);
-}
-
-.knobLeft {
-  left: -8px;
-}
-
-.knobRight {
-  right: -8px;
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  padding: 6px 6px 4px 8px;
-  gap: 4px;
-}
-
-.textarea {
-  flex: 1;
-  min-height: 36px;
-  line-height: 1.5;
-  padding: 0;
-  font-size: 12px;
-  overflow: hidden;
-}
-
-.deleteBtn {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  font-size: 14px;
-  color: var(--text-3);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
-  line-height: 1;
-  padding-bottom: 1px;
-}
-
-.cell:hover .deleteBtn {
-  opacity: 1;
-}
-
-.deleteBtn:hover {
-  color: var(--accent-neg);
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  padding: 0 6px 6px 8px;
-}
-
-.tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 2px;
-  border: 1px solid transparent;
-  color: var(--text-3);
-  background: var(--bg-2);
-  transition: all 0.15s;
-  letter-spacing: 0.04em;
-}
-
-.tag:hover {
-  color: var(--text-1);
-  border-color: var(--border);
-}
-
-.tag.active {
   background: var(--bg-3);
-  border-color: var(--border-bright);
-  color: var(--text-0);
+  border: 1.5px solid var(--border-bright);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  cursor: crosshair;
+  z-index: 30;
+  padding: 0;
+  flex-shrink: 0;
+  pointer-events: all;
 }
 
-.tag_drop.active { 
-  background: var(--tag-red); 
-  color: var(--accent-neg);
-  border-color: var(--accent-neg-dim);
+.cell:hover .knob {
+  opacity: 1;
 }
 
-.tag_xt.active { 
-  background: var(--tag-green); 
-  color: var(--accent-aff);
-  border-color: var(--accent-aff-dim);
-}
-
-.tag_turn.active {
-  background: var(--tag-blue);
-  color: var(--accent-blue);
-  border-color: var(--accent-blue);
-}
-
-.tag_nr.active {
-  background: #1a1506;
-  color: var(--accent-yellow);
+.knob:hover {
+  background: var(--accent-yellow);
   border-color: var(--accent-yellow);
 }
 
-.addBtn {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  padding: 1px 6px;
-  border-radius: 2px;
-  border: 1px dashed var(--border);
-  color: var(--text-3);
-  background: transparent;
-  transition: all 0.15s;
-  margin-left: auto;
-}
-
-.addBtn:hover {
-  color: var(--text-1);
-  border-color: var(--border-bright);
-  border-style: solid;
+.knob.knobActive {
+  opacity: 1 !important;
+  background: var(--accent-yellow);
+  border-color: var(--accent-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.25);
 }

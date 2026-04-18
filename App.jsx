@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDebateFlow } from './useDebateFlow'
 import { Sidebar } from './Sidebar'
 import { SpeechColumn } from './SpeechColumn'
@@ -6,52 +6,117 @@ import styles from './App.module.css'
 
 export default function App() {
   const {
-    flows,
-    activeFlow,
-    activeFlowId,
-    activeSpeechId,
-    setActiveFlowId,
-    setActiveSpeechId,
-    addFlow,
-    deleteFlow,
-    renameFlow,
-    updateCell,
-    addCell,
-    deleteCell,
-    addConnection,
-    removeConnection,
+    flows, activeFlow, activeFlowId, activeSpeechId,
+    setActiveFlowId, setActiveSpeechId,
+    addFlow, deleteFlow, renameFlow,
+    updateCell, addCell, deleteCell,
+    addConnection, removeConnection,
     exportFlow,
   } = useDebateFlow()
 
-  const [selectedCell, setSelectedCell] = useState(null)
+  const [pendingFrom, setPendingFrom] = useState([])
+  const [cursor, setCursor] = useState(null)
+  const [, forceUpdate] = useState(0)
 
-  const handleCellClick = useCallback((speechId, cellId) => {
-    if (!selectedCell) {
-      setSelectedCell({ speechId, cellId })
-    } else {
-      if (selectedCell.speechId === speechId && selectedCell.cellId === cellId) {
-        setSelectedCell(null)
-      } else {
-        addConnection(selectedCell.speechId, selectedCell.cellId, speechId, cellId)
-        setSelectedCell(null)
-      }
-    }
-  }, [selectedCell, addConnection])
+  const cellRefsMap = useRef(new Map())
+  const flowBoardRef = useRef(null)
+  const svgRef = useRef(null)
 
-  const handleKnobClick = useCallback((speechId, cellId, direction) => {
-    if (!selectedCell) {
-      setSelectedCell({ speechId, cellId, direction })
-    } else {
-      if (selectedCell.speechId === speechId && selectedCell.cellId === cellId) {
-        setSelectedCell(null)
-      } else {
-        addConnection(selectedCell.speechId, selectedCell.cellId, speechId, cellId)
-        setSelectedCell(null)
-      }
+  useEffect(() => {
+    const el = flowBoardRef.current
+    if (!el) return
+    const update = () => forceUpdate(n => n + 1)
+    el.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    return () => {
+      el.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
     }
-  }, [selectedCell, addConnection])
+  }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => forceUpdate(n => n + 1), 50)
+    return () => clearTimeout(timer)
+  }, [activeFlowId, activeSpeechId])
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (pendingFrom.length === 0) return
+      const svgEl = svgRef.current
+      if (!svgEl) return
+      const rect = svgEl.getBoundingClientRect()
+      setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [pendingFrom.length])
+
+  const handleKnobClick = useCallback((speechId, cellId) => {
+    if (pendingFrom.length === 0) {
+      setPendingFrom([{ speechId, cellId }])
+      return
+    }
+    const fromSpeechId = pendingFrom[0].speechId
+    if (speechId === fromSpeechId) {
+      const already = pendingFrom.some(p => p.cellId === cellId)
+      if (already) {
+        const next = pendingFrom.filter(p => p.cellId !== cellId)
+        setPendingFrom(next)
+        if (next.length === 0) setCursor(null)
+      } else {
+        setPendingFrom(prev => [...prev, { speechId, cellId }])
+      }
+      return
+    }
+    pendingFrom.forEach(src => addConnection(src.cellId, cellId))
+    setPendingFrom([])
+    setCursor(null)
+  }, [pendingFrom, addConnection])
+
+  const getLineCoords = useCallback((fromCellId, toCellId) => {
+    const fromEl = cellRefsMap.current.get(fromCellId)
+    const toEl = cellRefsMap.current.get(toCellId)
+    const svgEl = svgRef.current
+    if (!fromEl || !toEl || !svgEl) return null
+    const svgRect = svgEl.getBoundingClientRect()
+    const fromRect = fromEl.getBoundingClientRect()
+    const toRect = toEl.getBoundingClientRect()
+    return {
+      x1: fromRect.right - svgRect.left,
+      y1: fromRect.top + fromRect.height / 2 - svgRect.top,
+      x2: toRect.left - svgRect.left,
+      y2: toRect.top + toRect.height / 2 - svgRect.top,
+    }
+  }, [])
+
+  const getKnobCoords = useCallback((cellId) => {
+    const el = cellRefsMap.current.get(cellId)
+    const svgEl = svgRef.current
+    if (!el || !svgEl) return null
+    const svgRect = svgEl.getBoundingClientRect()
+    const rect = el.getBoundingClientRect()
+    return {
+      x: rect.right - svgRect.left,
+      y: rect.top + rect.height / 2 - svgRect.top,
+    }
+  }, [])
 
   if (!activeFlow) return null
+
+  const showAll = activeSpeechId === 'all'
+  const speeches = showAll
+    ? activeFlow.speeches
+    : activeFlow.speeches.filter(s => s.id === activeSpeechId)
+
+  const pendingCellIds = new Set(pendingFrom.map(p => p.cellId))
+  const isPending = pendingFrom.length > 0
 
   return (
     <div className={styles.app}>
@@ -72,68 +137,119 @@ export default function App() {
           <div className={styles.topBarLeft}>
             <h1 className={styles.flowTitle}>{activeFlow.name}</h1>
             <span className={styles.flowDate}>
-              {new Date(activeFlow.createdAt).toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric'
-              })}
+              {new Date(activeFlow.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
           </div>
           <div className={styles.viewToggle}>
             <button
-              className={`${styles.viewBtn} ${activeSpeechId === 'all' ? styles.activeView : ''}`}
+              className={`${styles.viewBtn} ${showAll ? styles.activeView : ''}`}
               onClick={() => setActiveSpeechId('all')}
-            >All Speeches</button>
+            >All</button>
             <button
-              className={`${styles.viewBtn} ${activeSpeechId !== 'all' ? styles.activeView : ''}`}
-              onClick={() => {
-                if (activeSpeechId === 'all') setActiveSpeechId('1ac')
-              }}
-            >Single Speech</button>
+              className={`${styles.viewBtn} ${!showAll ? styles.activeView : ''}`}
+              onClick={() => { if (showAll) setActiveSpeechId('1ac') }}
+            >Single</button>
           </div>
         </div>
 
-        <div className={styles.flowBoard}>
-          {activeSpeechId === 'all'
-            ? activeFlow.speeches.map(speech => (
-                <SpeechColumn
-                  key={speech.id}
-                  speech={speech}
-                  onUpdateCell={updateCell}
-                  onAddCell={addCell}
-                  onDeleteCell={deleteCell}
-                  onCellClick={handleCellClick}
-                  onKnobClick={handleKnobClick}
-                  selectedCell={selectedCell}
-                />
-              ))
-            : (() => {
-                const speech = activeFlow.speeches.find(s => s.id === activeSpeechId)
-                if (!speech) return null
+        <div
+          ref={flowBoardRef}
+          className={styles.flowBoard}
+          onClick={(e) => {
+            if (e.target === flowBoardRef.current) { setPendingFrom([]); setCursor(null) }
+          }}
+        >
+          {showAll && (
+            <svg ref={svgRef} className={styles.lineOverlay}>
+              <defs>
+                <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </marker>
+                <marker id="arrowDraft" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </marker>
+              </defs>
+
+              {/* Committed connections */}
+              {activeFlow.connections.map(conn => {
+                const coords = getLineCoords(conn.fromCellId, conn.toCellId)
+                if (!coords) return null
+                const { x1, y1, x2, y2 } = coords
+                const cx = (x1 + x2) / 2
+                const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
                 return (
-                  <div className={styles.singleView}>
-                    <SpeechColumn
-                      speech={speech}
-                      onUpdateCell={updateCell}
-                      onAddCell={addCell}
-                      onDeleteCell={deleteCell}
-                      onCellClick={handleCellClick}
-                      onKnobClick={handleKnobClick}
-                      selectedCell={selectedCell}
+                  <g key={conn.id}>
+                    {/* Visible line - no pointer events */}
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke="var(--accent-yellow)"
+                      strokeWidth="1.5"
+                      strokeDasharray="5 4"
+                      opacity="0.5"
+                      markerEnd="url(#arrowConn)"
+                      style={{ pointerEvents: 'none' }}
                     />
-                    <div className={styles.singleHint}>
-                      <div className={styles.hintText}>
-                        Navigate speeches from the sidebar or switch to All Speeches view
-                      </div>
-                      <div className={styles.shortcutsGrid}>
-                        <kbd>Ctrl+Enter</kbd><span>New argument below</span>
-                        <kbd>Ctrl+Backspace</kbd><span>Delete empty cell</span>
-                        <kbd>Double-click</kbd><span>Rename flow</span>
-                      </div>
-                    </div>
-                  </div>
+                    {/* Wide invisible hit area - right-click to delete */}
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth="16"
+                      style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        removeConnection(conn.id)
+                      }}
+                    />
+                  </g>
                 )
-              })()
-          }
+              })}
+
+              {/* Live draft lines */}
+              {isPending && cursor && pendingFrom.map(src => {
+                const from = getKnobCoords(src.cellId)
+                if (!from) return null
+                const cx = (from.x + cursor.x) / 2
+                const d = `M ${from.x} ${from.y} C ${cx} ${from.y}, ${cx} ${cursor.y}, ${cursor.x} ${cursor.y}`
+                return (
+                  <path
+                    key={`draft-${src.cellId}`}
+                    d={d}
+                    fill="none"
+                    stroke="var(--accent-yellow)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                    opacity="0.35"
+                    markerEnd="url(#arrowDraft)"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                )
+              })}
+            </svg>
+          )}
+
+          {speeches.map(speech => (
+            <SpeechColumn
+              key={speech.id}
+              speech={speech}
+              onUpdateCell={updateCell}
+              onAddCell={addCell}
+              onDeleteCell={deleteCell}
+              pendingCellIds={pendingCellIds}
+              onKnobClick={showAll ? handleKnobClick : null}
+              cellRefsMap={cellRefsMap}
+            />
+          ))}
         </div>
+
+        {isPending && showAll && (
+          <div className={styles.drawHint}>
+            {pendingFrom.length === 1
+              ? 'click a knob on another speech to connect · right-click a line to delete · Esc to cancel'
+              : `${pendingFrom.length} grouped · click a knob in another speech to connect all · Esc to cancel`}
+          </div>
+        )}
       </main>
     </div>
   )
