@@ -14,9 +14,7 @@ export default function App() {
     exportFlow,
   } = useDebateFlow()
 
-  // pendingFrom: array of { speechId, cellId } — knobs that have been clicked as source
   const [pendingFrom, setPendingFrom] = useState([])
-  // live cursor position for the in-progress line
   const [cursor, setCursor] = useState(null)
   const [, forceUpdate] = useState(0)
 
@@ -24,7 +22,6 @@ export default function App() {
   const flowBoardRef = useRef(null)
   const svgRef = useRef(null)
 
-  // Rerender lines on scroll or resize
   useEffect(() => {
     const el = flowBoardRef.current
     if (!el) return
@@ -37,13 +34,11 @@ export default function App() {
     }
   }, [])
 
-  // Re-render connection lines after flow or view switch
   useEffect(() => {
     const timer = setTimeout(() => forceUpdate(n => n + 1), 50)
     return () => clearTimeout(timer)
   }, [activeFlowId, activeSpeechId])
 
-  // Track mouse position for live cursor line, cancel on Escape
   useEffect(() => {
     const onMove = (e) => {
       if (pendingFrom.length === 0) return
@@ -72,7 +67,6 @@ export default function App() {
     const fromSpeechId = pendingFrom[0].speechId
 
     if (speechId === fromSpeechId) {
-      // Same speech — toggle in/out of source group
       const already = pendingFrom.some(p => p.cellId === cellId)
       if (already) {
         const next = pendingFrom.filter(p => p.cellId !== cellId)
@@ -84,7 +78,7 @@ export default function App() {
       return
     }
 
-    // Different speech — fire all connections and clear
+    // Different speech — complete all connections
     pendingFrom.forEach(src => addConnection(src.cellId, cellId))
     setPendingFrom([])
     setCursor(null)
@@ -169,7 +163,6 @@ export default function App() {
             if (e.target === flowBoardRef.current) { setPendingFrom([]); setCursor(null) }
           }}
         >
-          {/* SVG overlay — only in all-speeches view */}
           {showAll && (
             <svg ref={svgRef} className={styles.lineOverlay} style={{ pointerEvents: 'none' }}>
               <defs>
@@ -181,7 +174,6 @@ export default function App() {
                 </marker>
               </defs>
 
-              {/* Committed connections */}
               {activeFlow.connections.map(conn => {
                 const coords = getLineCoords(conn.fromCellId, conn.toCellId)
                 if (!coords) return null
@@ -189,15 +181,20 @@ export default function App() {
                 const cx = (x1 + x2) / 2
                 const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
                 return (
-                  <g key={conn.id} style={{ pointerEvents: 'stroke' }}>
-                    <path d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)" style={{ pointerEvents: 'none' }} />
-                    {/* Wide transparent hit area to click-delete */}
-                    <path d={d} fill="none" stroke="transparent" strokeWidth="14" style={{ cursor: 'pointer', pointerEvents: 'stroke' }} onClick={() => removeConnection(conn.id)} />
-                  </g>
+                  <path
+                    key={conn.id}
+                    d={d}
+                    fill="none"
+                    stroke="var(--accent-yellow)"
+                    strokeWidth="1.5"
+                    strokeDasharray="5 4"
+                    opacity="0.5"
+                    markerEnd="url(#arrowConn)"
+                    style={{ pointerEvents: 'none' }}
+                  />
                 )
               })}
 
-              {/* Live draft lines from pending sources to cursor */}
               {isPending && cursor && pendingFrom.map(src => {
                 const from = getKnobCoords(src.cellId)
                 if (!from) return null
@@ -213,6 +210,7 @@ export default function App() {
                     strokeDasharray="4 3"
                     opacity="0.35"
                     markerEnd="url(#arrowDraft)"
+                    style={{ pointerEvents: 'none' }}
                   />
                 )
               })}
