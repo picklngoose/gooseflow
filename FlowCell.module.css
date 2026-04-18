@@ -43,7 +43,6 @@
 /* Connect knob — sits on the right edge, outside the cell border */
 .knob {
   position: absolute;
-  right: -7px;
   top: 50%;
   transform: translateY(-50%);
   width: 12px;
@@ -74,4 +73,12 @@
   background: var(--accent-yellow);
   border-color: var(--accent-yellow);
   box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.25);
+}
+
+.knobLeft {
+  left: -7px;
+}
+
+.knobRight {
+  right: -7px;
 }

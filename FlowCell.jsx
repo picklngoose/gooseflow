@@ -48,12 +48,20 @@ export const FlowCell = forwardRef(function FlowCell(
         className={styles.textarea}
       />
       {onKnobClick && (
-        <button
-          className={`${styles.knob} ${isSelected ? styles.knobActive : ''}`}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleKnobClick}
-          title={isSelected ? 'Deselect' : 'Connect to another argument'}
-        />
+        <>
+          <button
+            className={`${styles.knob} ${styles.knobLeft} ${isSelected ? styles.knobActive : ''}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleKnobClick}
+            title={isSelected ? 'Deselect' : 'Connect from left'}
+          />
+          <button
+            className={`${styles.knob} ${styles.knobRight} ${isSelected ? styles.knobActive : ''}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleKnobClick}
+            title={isSelected ? 'Deselect' : 'Connect from right'}
+          />
+        </>
       )}
     </div>
   )
