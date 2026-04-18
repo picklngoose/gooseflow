@@ -2,7 +2,7 @@ import { useRef, useCallback, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
 export const FlowCell = forwardRef(function FlowCell(
-  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, onKnobClick },
+  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, onKnobClick, onCellHover },
   ref
 ) {
   const textRef = useRef(null)
@@ -37,6 +37,8 @@ export const FlowCell = forwardRef(function FlowCell(
       ref={ref}
       className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
       onContextMenu={handleContextMenu}
+      onMouseEnter={() => onCellHover && onCellHover(true)}
+      onMouseLeave={() => onCellHover && onCellHover(false)}
     >
       <textarea
         ref={textRef}
