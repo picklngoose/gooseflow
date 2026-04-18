@@ -17,6 +17,14 @@ export default function App() {
   } = useDebateFlow()
 
   const [showHelp, setShowHelp] = useState(false)
+
+  const deleteCellAndRedraw = useCallback((speechId, cellId) => {
+    deleteCell(speechId, cellId)
+    requestAnimationFrame(() => {
+      forceUpdate(n => n + 1)
+      requestAnimationFrame(() => forceUpdate(n => n + 1))
+    })
+  }, [deleteCell])
   const [pendingFrom, setPendingFrom] = useState([])
   const [cursor, setCursor] = useState(null)
   const [hoveredSpeechId, setHoveredSpeechId] = useState(null)
@@ -187,7 +195,7 @@ export default function App() {
               speech={speech}
               onUpdateCell={updateCell}
               onAddCell={addCell}
-              onDeleteCell={deleteCell}
+              onDeleteCell={deleteCellAndRedraw}
               onAddEmptySpace={addEmptySpace}
               onDeleteEmptySpace={deleteEmptySpace}
               onReorderItems={reorderItems}
