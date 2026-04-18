@@ -36,7 +36,14 @@ const migrateFlow = (flow) => ({
   }).filter(c => c.fromCellId && c.toCellId),
   speeches: flow.speeches
     .filter(s => VALID_SPEECH_IDS.has(s.id))
-    .map(s => ({ ...s, cells: s.cells.map(c => ({ id: c.id, content: c.content || '' })) })),
+    .map(s => {
+      const speechDef = SPEECH_ORDER.find(def => def.id === s.id)
+      return {
+        ...s,
+        ...speechDef, // This will update time and other properties from SPEECH_ORDER
+        cells: s.cells.map(c => ({ id: c.id, content: c.content || '' }))
+      }
+    }),
 })
 
 const loadFlows = () => {
