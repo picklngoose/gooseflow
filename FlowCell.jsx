@@ -12,11 +12,7 @@ export const FlowCell = forwardRef(function FlowCell(
       e.preventDefault()
       onAddBelow()
     }
-    if (e.key === 'Backspace' && cell.content === '' && e.ctrlKey) {
-      e.preventDefault()
-      onDelete()
-    }
-  }, [cell.content, onAddBelow, onDelete])
+  }, [onAddBelow])
 
   const handleChange = useCallback((e) => {
     onUpdate({ content: e.target.value })
@@ -24,6 +20,11 @@ export const FlowCell = forwardRef(function FlowCell(
     el.style.height = 'auto'
     el.style.height = el.scrollHeight + 'px'
   }, [onUpdate])
+
+  const handleContextMenu = useCallback((e) => {
+    e.preventDefault()
+    onDelete()
+  }, [onDelete])
 
   const handleKnobClick = useCallback((e) => {
     e.stopPropagation()
@@ -35,6 +36,7 @@ export const FlowCell = forwardRef(function FlowCell(
     <div
       ref={ref}
       className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
+      onContextMenu={handleContextMenu}
     >
       <textarea
         ref={textRef}
@@ -45,12 +47,6 @@ export const FlowCell = forwardRef(function FlowCell(
         rows={1}
         className={styles.textarea}
       />
-      <button
-        className={styles.deleteBtn}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={onDelete}
-        title="Delete"
-      >×</button>
       {onKnobClick && (
         <button
           className={`${styles.knob} ${isSelected ? styles.knobActive : ''}`}
