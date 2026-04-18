@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, isHovered, onDragMove }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, onCellHover, isHovered, onDragMove }) {
   const items = speech.items || []
   const [drag, setDrag] = useState(null)
   const itemRefs = useRef({})
@@ -156,6 +156,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   onAddBelow={() => onAddCell(speech.id)}
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
+                  onCellHover={onCellHover ? (entering) => onCellHover(entering ? speech.id : null, entering ? item.id : null) : null}
                   ref={el => {
                     if (el) {
                       cellRefsMap.current.set(item.id, el)
