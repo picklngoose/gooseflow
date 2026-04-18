@@ -28,6 +28,7 @@ export default function App() {
   const [pendingFrom, setPendingFrom] = useState([])
   const [cursor, setCursor] = useState(null)
   const [hoveredSpeechId, setHoveredSpeechId] = useState(null)
+  const [hoveredConnId, setHoveredConnId] = useState(null)
   const [, forceUpdate] = useState(0)
   const hoveredCellRef = useRef(null) // { speechId, cellId }
 
@@ -46,14 +47,26 @@ export default function App() {
     return () => { el.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
   }, [])
 
-  // Native contextmenu on the board — finds nearest connection path and deletes it.
-  // Native listener works even though the SVG overlay has pointer-events:none.
+
+
   useEffect(() => {
-    const el = flowBoardRef.current
-    if (!el) return
-    const onContextMenu = (e) => {
+    const t = setTimeout(() => forceUpdate(n => n + 1), 50)
+    return () => clearTimeout(t)
+  }, [activeFlowId])
+
+  useEffect(() => {
+    const onMove = (e) => {
+      // Update draft line cursor
+      if (pendingFrom.length > 0) {
+        const svgEl = svgRef.current
+        if (svgEl) {
+          const rect = svgEl.getBoundingClientRect()
+          setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+        }
+      }
+      // Track nearest connection for x-to-delete hover
       const svgEl = svgRef.current
-      if (!svgEl || connPathsRef.current.size === 0) return
+      if (!svgEl || connPathsRef.current.size === 0) { setHoveredConnId(null); return }
       const rect = svgEl.getBoundingClientRect()
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
@@ -68,51 +81,41 @@ export default function App() {
           if (dist < bestDist) { bestDist = dist; bestId = connId }
         }
       })
-      if (bestId) {
-        e.preventDefault()
-        removeConnection(bestId)
-      }
-    }
-    el.addEventListener('contextmenu', onContextMenu)
-    return () => el.removeEventListener('contextmenu', onContextMenu)
-  }, [removeConnection])
-
-  useEffect(() => {
-    const t = setTimeout(() => forceUpdate(n => n + 1), 50)
-    return () => clearTimeout(t)
-  }, [activeFlowId])
-
-  useEffect(() => {
-    const onMove = (e) => {
-      if (pendingFrom.length === 0) return
-      const svgEl = svgRef.current
-      if (!svgEl) return
-      const rect = svgEl.getBoundingClientRect()
-      setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+      setHoveredConnId(bestId)
     }
     const onKey = (e) => {
       if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
       if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return
       if (e.key === 'a' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        const speechId = hoveredSpeechId || null
-        if (speechId) addCell(speechId)
+        if (hoveredSpeechId) addCell(hoveredSpeechId)
       }
       if (e.key === 'b' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        const speechId = hoveredSpeechId || null
-        if (speechId) addEmptySpace(speechId)
+        if (hoveredSpeechId) addEmptySpace(hoveredSpeechId)
       }
       if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         const hovered = hoveredCellRef.current
         if (hovered) handleKnobClick(hovered.speechId, hovered.cellId)
       }
+      if (e.key === 'x' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        if (hoveredConnId) {
+          removeConnection(hoveredConnId)
+        } else {
+          const hovered = hoveredCellRef.current
+          if (hovered) {
+            if (hovered.type === 'space') deleteEmptySpace(hovered.speechId, hovered.cellId)
+            else deleteCellAndRedraw(hovered.speechId, hovered.cellId)
+          }
+        }
+      }
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('keydown', onKey) }
-  }, [pendingFrom.length, hoveredSpeechId, addCell, addEmptySpace])
+  }, [pendingFrom.length, hoveredSpeechId, hoveredConnId, addCell, addEmptySpace, deleteEmptySpace, removeConnection, deleteCellAndRedraw])
 
   const handleKnobClick = useCallback((speechId, cellId) => {
     if (pendingFrom.length === 0) {
@@ -216,11 +219,17 @@ export default function App() {
               const { x1, y1, x2, y2 } = coords
               const cx = (x1 + x2) / 2
               const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
+              const isHovered = conn.id === hoveredConnId
               return (
                 <path
                   key={conn.id}
                   ref={el => { if (el) connPathsRef.current.set(conn.id, el); else connPathsRef.current.delete(conn.id) }}
-                  d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)"
+                  d={d} fill="none"
+                  stroke={isHovered ? 'var(--accent-yellow)' : 'var(--accent-yellow)'}
+                  strokeWidth={isHovered ? 2.5 : 1.5}
+                  strokeDasharray="5 4"
+                  opacity={isHovered ? 0.9 : 0.5}
+                  markerEnd="url(#arrowConn)"
                 />
               )
             })}
@@ -249,7 +258,7 @@ export default function App() {
               onKnobClick={handleKnobClick}
               cellRefsMap={cellRefsMap}
               onHover={setHoveredSpeechId}
-              onCellHover={(speechId, cellId) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId } : null }}
+              onCellHover={(speechId, cellId, type) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId, type } : null }}
               isHovered={hoveredSpeechId === speech.id}
               onDragMove={() => forceUpdate(n => n + 1)}
             />
@@ -259,8 +268,8 @@ export default function App() {
         {isPending && (
           <div className={styles.drawHint}>
             {pendingFrom.length === 1
-              ? 'click a knob on another speech to connect · right-click a line to delete · Esc to cancel'
-              : `${pendingFrom.length} selected · click a knob in another speech · Esc to cancel`}
+              ? 'click or press c on another cell to connect · x to delete hovered · Esc to cancel'
+              : `${pendingFrom.length} selected · click or press c in another speech · Esc to cancel`}
           </div>
         )}
 
@@ -272,9 +281,8 @@ export default function App() {
                 <div className={styles.shortcut}><kbd>a</kbd><span>Add argument to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>b</kbd><span>Add spacer to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target)</span></div>
+                <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell or connection</span></div>
                 <div className={styles.shortcut}><kbd>Ctrl+Enter</kbd><span>New argument below (in cell)</span></div>
-                <div className={styles.shortcut}><kbd>Right-click cell</kbd><span>Delete cell</span></div>
-                <div className={styles.shortcut}><kbd>Right-click line</kbd><span>Delete connection</span></div>
                 <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
