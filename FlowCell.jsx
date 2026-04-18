@@ -21,11 +21,6 @@ export const FlowCell = forwardRef(function FlowCell(
     el.style.height = el.scrollHeight + 'px'
   }, [onUpdate])
 
-  const handleContextMenu = useCallback((e) => {
-    e.preventDefault()
-    onDelete()
-  }, [onDelete])
-
   const handleKnobClick = useCallback((e) => {
     e.stopPropagation()
     e.preventDefault()
@@ -36,7 +31,6 @@ export const FlowCell = forwardRef(function FlowCell(
     <div
       ref={ref}
       className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
-      onContextMenu={handleContextMenu}
       onMouseEnter={() => onCellHover && onCellHover(true)}
       onMouseLeave={() => onCellHover && onCellHover(false)}
     >
