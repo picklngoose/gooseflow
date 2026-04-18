@@ -4,7 +4,7 @@ import { Timer } from './Timer'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, isHovered }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, isHovered, onDragMove }) {
   const items = speech.items || []
 
   const [drag, setDrag] = useState(null)
@@ -59,6 +59,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
       const newPlaceholder = calcPlaceholderIndex(e.clientY, dragRef.current.itemId)
       dragRef.current.placeholderIndex = newPlaceholder
       setDrag(prev => prev ? { ...prev, y: newY, placeholderIndex: newPlaceholder } : null)
+      if (onDragMove) onDragMove()
     }
 
     const onUp = () => {
