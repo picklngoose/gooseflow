@@ -94,9 +94,6 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
         without.splice(Math.min(placeholderIndex, without.length), 0, dragged)
         onReorderItems(speech.id, without)
       }
-      // cellRefsMap will be restored by FlowCell ref on next render.
-      // Fire onDragMove on the next two animation frames so the SVG lines
-      // redraw after React has committed the real DOM refs.
       if (onDragMove) {
         requestAnimationFrame(() => {
           onDragMove()
@@ -145,7 +142,11 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
               onPointerDown={(e) => startDrag(e, item.id)}
             >
               {item.type === 'space' ? (
-                <div className={styles.emptySpace} onContextMenu={(e) => { e.preventDefault(); onDeleteEmptySpace(speech.id, item.id) }} />
+                <div
+                  className={styles.emptySpace}
+                  onMouseEnter={() => onCellHover && onCellHover(speech.id, item.id, 'space')}
+                  onMouseLeave={() => onCellHover && onCellHover(null, null, null)}
+                />
               ) : (
                 <FlowCell
                   cell={item}
@@ -156,7 +157,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   onAddBelow={() => onAddCell(speech.id)}
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
-                  onCellHover={onCellHover ? (entering) => onCellHover(entering ? speech.id : null, entering ? item.id : null) : null}
+                  onCellHover={onCellHover ? (entering) => onCellHover(entering ? speech.id : null, entering ? item.id : null, entering ? 'cell' : null) : null}
                   ref={el => {
                     if (el) {
                       cellRefsMap.current.set(item.id, el)
