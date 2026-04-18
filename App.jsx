@@ -34,7 +34,7 @@ export default function App() {
   const cellRefsMap = useRef(new Map())
   const flowBoardRef = useRef(null)
   const svgRef = useRef(null)
-  const deletingConnRef = useRef(false)
+  const connPathsRef = useRef(new Map()) // conn.id → <path> DOM element
 
   // Redraw lines on scroll/resize
   useEffect(() => {
@@ -170,7 +170,26 @@ export default function App() {
           className={styles.flowBoard}
           onClick={(e) => { if (e.target === flowBoardRef.current) { setPendingFrom([]); setCursor(null) } }}
         >
-          <svg ref={svgRef} className={styles.lineOverlay}>
+          <svg ref={svgRef} className={styles.lineOverlay} onContextMenu={(e) => {
+            e.preventDefault()
+            const svgEl = svgRef.current
+            if (!svgEl) return
+            const rect = svgEl.getBoundingClientRect()
+            const mx = e.clientX - rect.left
+            const my = e.clientY - rect.top
+            let bestId = null
+            let bestDist = 12 // px threshold — must be within this distance
+            connPathsRef.current.forEach((pathEl, connId) => {
+              const len = pathEl.getTotalLength()
+              const steps = Math.max(20, Math.floor(len / 8))
+              for (let i = 0; i <= steps; i++) {
+                const pt = pathEl.getPointAtLength((i / steps) * len)
+                const dist = Math.hypot(pt.x - mx, pt.y - my)
+                if (dist < bestDist) { bestDist = dist; bestId = connId }
+              }
+            })
+            if (bestId) removeConnection(bestId)
+          }}>
             <defs>
               <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                 <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -188,7 +207,11 @@ export default function App() {
               return (
                 <g key={conn.id}>
                   <path d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" markerEnd="url(#arrowConn)" style={{ pointerEvents: 'none' }} />
-                  <path d={d} fill="none" stroke="transparent" strokeWidth="16" style={{ pointerEvents: 'stroke', cursor: 'pointer' }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); if (deletingConnRef.current) return; deletingConnRef.current = true; removeConnection(conn.id); setTimeout(() => { deletingConnRef.current = false }, 0) }} />
+                  <path
+                    ref={el => { if (el) connPathsRef.current.set(conn.id, el); else connPathsRef.current.delete(conn.id) }}
+                    d={d} fill="none" stroke="transparent" strokeWidth="16"
+                    style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                  />
                 </g>
               )
             })}
