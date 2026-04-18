@@ -8,7 +8,8 @@ function formatTime(seconds) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
-export function Timer({ duration, side }) {
+// Generic sidebar timer used for constructives, rebuttals, and prep
+export function SidebarTimer({ label, duration, side }) {
   const [remaining, setRemaining] = useState(duration)
   const [running, setRunning] = useState(false)
   const intervalRef = useRef(null)
@@ -25,14 +26,13 @@ export function Timer({ duration, side }) {
 
   const pct = Math.max(0, remaining / duration)
   const over = remaining < 0
-  const low = remaining <= 30 && remaining >= 0
+  const low = remaining > 0 && remaining <= 30
 
   return (
-    <div className={`${styles.timer} ${styles[side]} ${over ? styles.over : ''} ${low ? styles.low : ''}`}>
+    <div className={`${styles.timer} ${side ? styles[side] : ''} ${over ? styles.over : ''} ${low ? styles.low : ''}`}>
+      <div className={styles.label}>{label}</div>
       <div className={styles.time}>{over ? '-' : ''}{formatTime(remaining)}</div>
-      <div className={styles.bar}>
-        <div className={styles.fill} style={{ width: `${pct * 100}%` }} />
-      </div>
+      <div className={styles.bar}><div className={styles.fill} style={{ width: `${pct * 100}%` }} /></div>
       <div className={styles.controls}>
         <button onClick={toggle} className={styles.btn}>{running ? '⏸' : '▶'}</button>
         <button onClick={reset} className={styles.btn}>↺</button>
@@ -61,13 +61,16 @@ export function PrepTimer({ side, label }) {
     <div className={`${styles.timer} ${styles.prep} ${low ? styles.low : ''}`}>
       <div className={styles.label}>{label} PREP</div>
       <div className={styles.time}>{formatTime(remaining)}</div>
-      <div className={styles.bar}>
-        <div className={styles.fill} style={{ width: `${pct * 100}%` }} />
-      </div>
+      <div className={styles.bar}><div className={styles.fill} style={{ width: `${pct * 100}%` }} /></div>
       <div className={styles.controls}>
         <button onClick={toggle} className={styles.btn}>{running ? '⏸' : '▶'}</button>
         <button onClick={reset} className={styles.btn}>↺</button>
       </div>
     </div>
   )
+}
+
+// Kept for any legacy imports but no longer used in SpeechColumn
+export function Timer({ duration, side }) {
+  return <SidebarTimer label="" duration={duration} side={side} />
 }
