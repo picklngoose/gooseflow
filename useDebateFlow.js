@@ -5,10 +5,10 @@ export const SPEECH_ORDER = [
   { id: '1nc', label: '1NC', side: 'neg', type: 'constructive', time: 480, description: '1st Negative Constructive' },
   { id: '2ac', label: '2AC', side: 'aff', type: 'constructive', time: 480, description: '2nd Affirmative Constructive' },
   { id: '2nc', label: '2NC', side: 'neg', type: 'constructive', time: 480, description: '2nd Negative Constructive' },
-  { id: '1nr', label: '1NR', side: 'neg', type: 'rebuttal',     time: 240, description: '1st Negative Rebuttal' },
-  { id: '1ar', label: '1AR', side: 'aff', type: 'rebuttal',     time: 240, description: '1st Affirmative Rebuttal' },
-  { id: '2nr', label: '2NR', side: 'neg', type: 'rebuttal',     time: 240, description: '2nd Negative Rebuttal' },
-  { id: '2ar', label: '2AR', side: 'aff', type: 'rebuttal',     time: 240, description: '2nd Affirmative Rebuttal' },
+  { id: '1nr', label: '1NR', side: 'neg', type: 'rebuttal',     time: 300, description: '1st Negative Rebuttal' },
+  { id: '1ar', label: '1AR', side: 'aff', type: 'rebuttal',     time: 300, description: '1st Affirmative Rebuttal' },
+  { id: '2nr', label: '2NR', side: 'neg', type: 'rebuttal',     time: 300, description: '2nd Negative Rebuttal' },
+  { id: '2ar', label: '2AR', side: 'aff', type: 'rebuttal',     time: 300, description: '2nd Affirmative Rebuttal' },
 ]
 
 const VALID_SPEECH_IDS = new Set(SPEECH_ORDER.map(s => s.id))
