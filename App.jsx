@@ -12,6 +12,7 @@ export default function App() {
     updateCell, addCell, deleteCell,
     addEmptySpace, deleteEmptySpace,
     addConnection, removeConnection,
+    reorderItems,
     exportFlow,
   } = useDebateFlow()
 
@@ -57,12 +58,12 @@ export default function App() {
       
       if (e.key === 'a' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        const speechId = hoveredSpeechId || (activeSpeechId === 'all' ? null : activeSpeechId)
+        const speechId = hoveredSpeechId || (activeSpeechId !== 'all' ? activeSpeechId : null)
         if (speechId) addCell(speechId)
       }
       if (e.key === 'b' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        const speechId = hoveredSpeechId || (activeSpeechId === 'all' ? null : activeSpeechId)
+        const speechId = hoveredSpeechId || (activeSpeechId !== 'all' ? activeSpeechId : null)
         if (speechId) addEmptySpace(speechId)
       }
     }
@@ -264,6 +265,7 @@ export default function App() {
               cellRefsMap={cellRefsMap}
               onHover={setHoveredSpeechId}
               isHovered={hoveredSpeechId === speech.id}
+              onReorderItems={reorderItems}
             />
           ))}
         </div>
