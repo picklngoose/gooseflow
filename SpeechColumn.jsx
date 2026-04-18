@@ -149,8 +149,13 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
                   ref={el => {
-                    if (el) cellRefsMap.current.set(item.id, el)
-                    else cellRefsMap.current.delete(item.id)
+                    if (el) {
+                      cellRefsMap.current.set(item.id, el)
+                    } else if (!dragRef.current || dragRef.current.itemId !== item.id) {
+                      // Only delete if we're NOT currently dragging this item
+                      // (otherwise we'd overwrite our fake getBoundingClientRect object)
+                      cellRefsMap.current.delete(item.id)
+                    }
                   }}
                 />
               )}
