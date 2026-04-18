@@ -2,16 +2,14 @@
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px 10px;
-  min-width: 110px;
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .timer.prep {
-  opacity: 0.8;
-  min-width: 130px;
+  min-width: unset;
 }
 
 .label {
@@ -24,7 +22,7 @@
 
 .time {
   font-family: var(--font-mono);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text-0);
@@ -45,11 +43,11 @@
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.4; }
 }
 
 .bar {
-  height: 3px;
+  height: 2px;
   background: var(--bg-3);
   border-radius: 2px;
   overflow: hidden;
@@ -74,8 +72,8 @@
 
 .btn {
   flex: 1;
-  padding: 3px 0;
-  font-size: 11px;
+  padding: 2px 0;
+  font-size: 10px;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -87,8 +85,3 @@
   border-color: var(--border-bright);
   color: var(--text-0);
 }
-
-.btn.start { color: var(--accent-aff); }
-.btn.stop { color: var(--accent-neg); }
-
-.timer.neg .btn.start { color: var(--accent-neg); }
