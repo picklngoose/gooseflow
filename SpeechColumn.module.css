@@ -5,9 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: visible;
+  /* No height:100%, no overflow-y — grows to content, parent scrolls */
   padding: 6px 12px 8px 6px;
   border-radius: var(--radius-lg);
   transition: background 0.2s;
@@ -57,7 +55,6 @@
   cursor: grabbing;
 }
 
-/* Placeholder: looks like the actual cell being dragged */
 .placeholder {
   background: var(--bg-2);
   border: 1px solid var(--border-bright);
@@ -67,14 +64,6 @@
   opacity: 0.35;
   display: flex;
   align-items: flex-start;
-}
-
-.placeholder.aff {
-  border-left: 2px solid var(--accent-aff-dim);
-}
-
-.placeholder.neg {
-  border-left: 2px solid var(--accent-neg-dim);
 }
 
 .placeholderSpace {
@@ -91,7 +80,6 @@
   word-break: break-word;
 }
 
-/* Floating cell that follows cursor */
 .floatingCell {
   position: fixed;
   pointer-events: none;
@@ -107,13 +95,8 @@
   opacity: 0.95;
 }
 
-.floatingCell.aff {
-  border-left: 2px solid var(--accent-aff-dim);
-}
-
-.floatingCell.neg {
-  border-left: 2px solid var(--accent-neg-dim);
-}
+.floatingCell.aff { border-left: 2px solid var(--accent-aff-dim); }
+.floatingCell.neg { border-left: 2px solid var(--accent-neg-dim); }
 
 .floatingSpace {
   min-height: 20px;
