@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react'
 
+let _uid = 0
+const uid = () => `${Date.now()}-${++_uid}`
+
 export const SPEECH_ORDER = [
   { id: '1ac', label: '1AC', side: 'aff', type: 'constructive', time: 480, description: '1st Affirmative Constructive' },
   { id: '1nc', label: '1NC', side: 'neg', type: 'constructive', time: 480, description: '1st Negative Constructive' },
@@ -93,7 +96,7 @@ export function useDebateFlow() {
   const activeFlow = flows.find(f => f.id === activeFlowId) || flows[0]
 
   const addFlow = useCallback(() => {
-    const id = `flow-${Date.now()}`
+    const id = `flow-${uid()}`
     updateFlows(prev => [...prev, createFlow(id)])
     setActiveFlowId(id)
     persist(null, id)
@@ -133,7 +136,7 @@ export function useDebateFlow() {
   }, [updateSpeechItems])
 
   const addCell = useCallback((speechId) => {
-    updateSpeechItems(speechId, items => [...items, createCell(`${speechId}-${Date.now()}`)])
+    updateSpeechItems(speechId, items => [...items, createCell(`${speechId}-${uid()}`)])
   }, [updateSpeechItems])
 
   const deleteCell = useCallback((speechId, cellId) => {
@@ -153,7 +156,7 @@ export function useDebateFlow() {
   }, [activeFlowId, updateFlows])
 
   const addEmptySpace = useCallback((speechId) => {
-    updateSpeechItems(speechId, items => [...items, createSpace(`${speechId}-space-${Date.now()}`)])
+    updateSpeechItems(speechId, items => [...items, createSpace(`${speechId}-space-${uid()}`)])
   }, [updateSpeechItems])
 
   const deleteEmptySpace = useCallback((speechId, spaceId) => {
@@ -168,7 +171,7 @@ export function useDebateFlow() {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
       if (f.connections.some(c => c.fromCellId === fromCellId && c.toCellId === toCellId)) return f
-      return { ...f, connections: [...f.connections, { id: `conn-${Date.now()}`, fromCellId, toCellId }] }
+      return { ...f, connections: [...f.connections, { id: `conn-${uid()}`, fromCellId, toCellId }] }
     }))
   }, [activeFlowId, updateFlows])
 
