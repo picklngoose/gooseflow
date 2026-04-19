@@ -28,9 +28,10 @@ export default function App() {
   const [pendingFrom, setPendingFrom] = useState([])
   const [cursor, setCursor] = useState(null)
   const [hoveredSpeechId, setHoveredSpeechId] = useState(null)
-  const [hoveredConnId, setHoveredConnId] = useState(null)
+  const [highlightConnId, setHighlightConnId] = useState(null) // visual only
+  const hoveredConnRef = useRef(null) // always current — read by onKey without stale closure
   const [, forceUpdate] = useState(0)
-  const hoveredCellRef = useRef(null) // { speechId, cellId }
+  const hoveredCellRef = useRef(null) // { speechId, cellId, type }
 
   const cellRefsMap = useRef(new Map())
   const flowBoardRef = useRef(null)
@@ -68,13 +69,16 @@ export default function App() {
       }
       // Track nearest connection for x-to-delete hover
       const svgEl = svgRef.current
-      if (!svgEl || connPathsRef.current.size === 0) { setHoveredConnId(null); return }
+      if (!svgEl || connPathsRef.current.size === 0) {
+        hoveredConnRef.current = null
+        setHighlightConnId(null)
+        return
+      }
       const rect = svgEl.getBoundingClientRect()
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
       let bestId = null
       let bestDist = 12
-      // Iterate in a stable order (array from activeFlow.connections) so tiebreaks are deterministic
       const connIds = (activeFlowRef.current?.connections || []).map(c => c.id)
       for (const connId of connIds) {
         const pathEl = connPathsRef.current.get(connId)
@@ -87,7 +91,8 @@ export default function App() {
           if (dist < bestDist) { bestDist = dist; bestId = connId }
         }
       }
-      setHoveredConnId(prev => prev === bestId ? prev : bestId)
+      hoveredConnRef.current = bestId
+      setHighlightConnId(prev => prev === bestId ? prev : bestId)
     }
     const onKey = (e) => {
       if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
@@ -107,8 +112,9 @@ export default function App() {
       }
       if (e.key === 'x' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        if (hoveredConnId) {
-          removeConnection(hoveredConnId)
+        const connId = hoveredConnRef.current
+        if (connId) {
+          removeConnection(connId)
         } else {
           const hovered = hoveredCellRef.current
           if (hovered) {
@@ -121,7 +127,7 @@ export default function App() {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('keydown', onKey) }
-  }, [pendingFrom.length, hoveredSpeechId, hoveredConnId, addCell, addEmptySpace, deleteEmptySpace, removeConnection, deleteCellAndRedraw])
+  }, [pendingFrom.length, hoveredSpeechId, addCell, addEmptySpace, deleteEmptySpace, removeConnection, deleteCellAndRedraw])
 
   const handleKnobClick = useCallback((speechId, cellId) => {
     if (pendingFrom.length === 0) {
@@ -225,7 +231,7 @@ export default function App() {
               const { x1, y1, x2, y2 } = coords
               const cx = (x1 + x2) / 2
               const d = `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`
-              const isHovered = conn.id === hoveredConnId
+              const isHovered = conn.id === highlightConnId
               return (
                 <path
                   key={conn.id}
