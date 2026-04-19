@@ -17,6 +17,9 @@ export default function App() {
   } = useDebateFlow()
 
   const [showHelp, setShowHelp] = useState(false)
+  const [zoom, setZoom] = useState(1)
+  const [sidebarWidth, setSidebarWidth] = useState(220)
+  const resizingRef = useRef(false)
 
   const deleteCellAndRedraw = useCallback((speechId, cellId) => {
     deleteCell(speechId, cellId)
@@ -51,6 +54,21 @@ export default function App() {
   }, [])
 
 
+
+  // Sidebar resize
+  const startSidebarResize = useCallback((e) => {
+    e.preventDefault()
+    resizingRef.current = true
+    const startX = e.clientX
+    const startW = sidebarWidth
+    const onMove = (e) => {
+      if (!resizingRef.current) return
+      setSidebarWidth(Math.max(160, Math.min(400, startW + e.clientX - startX)))
+    }
+    const onUp = () => { resizingRef.current = false; document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp) }
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }, [sidebarWidth])
 
   useEffect(() => {
     const t = setTimeout(() => forceUpdate(n => n + 1), 50)
@@ -188,15 +206,28 @@ export default function App() {
 
   return (
     <div className={styles.app}>
-      <Sidebar
-        flows={flows}
-        activeFlowId={activeFlowId}
-        onSelectFlow={setActiveFlowId}
-        onAddFlow={addFlow}
-        onDeleteFlow={deleteFlow}
-        onRenameFlow={renameFlow}
-        onExport={exportFlow}
-      />
+      <div style={{ display: 'flex', flexShrink: 0, position: 'relative' }}>
+        <Sidebar
+          flows={flows}
+          activeFlowId={activeFlowId}
+          onSelectFlow={setActiveFlowId}
+          onAddFlow={addFlow}
+          onDeleteFlow={deleteFlow}
+          onRenameFlow={renameFlow}
+          onExport={exportFlow}
+          width={sidebarWidth}
+        />
+        <div
+          onPointerDown={startSidebarResize}
+          style={{
+            position: 'absolute', right: 0, top: 0, bottom: 0,
+            width: 4, cursor: 'col-resize', zIndex: 20,
+            background: 'transparent',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--border-bright)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        />
+      </div>
 
       <main className={styles.main}>
         <div className={styles.topBar}>
@@ -207,6 +238,12 @@ export default function App() {
             </span>
           </div>
           <div className={styles.viewToggle}>
+            <div className={styles.zoomControls}>
+              <button className={styles.zoomBtn} onClick={() => setZoom(z => Math.max(0.4, +(z - 0.1).toFixed(1)))} title="Zoom out">−</button>
+              <span className={styles.zoomLevel}>{Math.round(zoom * 100)}%</span>
+              <button className={styles.zoomBtn} onClick={() => setZoom(z => Math.min(2, +(z + 0.1).toFixed(1)))} title="Zoom in">+</button>
+              <button className={styles.zoomBtn} onClick={() => setZoom(1)} title="Reset zoom" style={{fontSize:10}}>↺</button>
+            </div>
             <button className={styles.helpBtn} onClick={() => setShowHelp(!showHelp)} title="Help">💡</button>
           </div>
         </div>
@@ -214,9 +251,13 @@ export default function App() {
         <div
           ref={flowBoardRef}
           className={styles.flowBoard}
-          onClick={(e) => { if (e.target === flowBoardRef.current) { setPendingFrom([]); setCursor(null) } }}
+          onClick={(e) => { if (e.target === flowBoardRef.current || e.target.classList.contains(styles.flowBoardInner)) { setPendingFrom([]); setCursor(null) } }}
         >
-          <svg ref={svgRef} className={styles.lineOverlay}>
+          <div
+            className={styles.flowBoardInner}
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: zoom !== 1 ? `${100/zoom}%` : undefined }}
+          >
+          <svg ref={svgRef} className={styles.lineOverlay} style={{ width: '100%', height: '100%' }}>
             <defs>
               <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                 <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -275,6 +316,7 @@ export default function App() {
               onDragMove={() => forceUpdate(n => n + 1)}
             />
           ))}
+          </div>
         </div>
 
         {isPending && (
@@ -293,7 +335,8 @@ export default function App() {
                 <div className={styles.shortcut}><kbd>a</kbd><span>Add argument to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>b</kbd><span>Add spacer to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target)</span></div>
-                <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell, spacer, or connection</span></div>
+                <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell or connection</span></div>
+                <div className={styles.shortcut}><kbd>Ctrl+Enter</kbd><span>New argument below (in cell)</span></div>
                 <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
