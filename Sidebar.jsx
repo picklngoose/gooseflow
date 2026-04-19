@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { PrepTimer } from './Timer'
 import styles from './Sidebar.module.css'
 
-export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport }) {
+export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport, width }) {
   const [editingId, setEditingId] = useState(null)
   const [editingName, setEditingName] = useState('')
 
@@ -10,7 +10,7 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
   const commitEdit = () => { if (editingName.trim()) onRenameFlow(editingId, editingName.trim()); setEditingId(null) }
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={styles.sidebar} style={width ? { width } : {}}>
       <div className={styles.logo}>
         <span className={styles.logoMark}>⬡</span>
         <span className={styles.logoText}>gooseflow</span>
