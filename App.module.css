@@ -1,4 +1,3 @@
-/* ── Top-level layout ── */
 .app {
   display: flex;
   height: 100vh;
@@ -13,7 +12,6 @@
   min-width: 0;
 }
 
-/* ── Top bar ── */
 .topBar {
   display: flex;
   align-items: center;
@@ -50,61 +48,75 @@
 
 .viewToggle {
   display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.zoomControls {
+  display: flex;
+  align-items: center;
   gap: 2px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 2px;
-  flex-shrink: 0;
 }
 
-.viewBtn {
-  padding: 3px 10px;
-  font-size: 11px;
+.zoomBtn {
+  padding: 2px 8px;
+  font-size: 14px;
   font-family: var(--font-mono);
   color: var(--text-2);
   border-radius: 3px;
   transition: all 0.15s;
+  line-height: 1;
 }
 
-.viewBtn:hover {
+.zoomBtn:hover {
   color: var(--text-0);
-}
-
-.viewBtn.activeView {
   background: var(--bg-3);
-  color: var(--text-0);
-  border: 1px solid var(--border-bright);
 }
 
-/* ── Flow board (scrollable horizontal canvas) ── */
+.zoomLevel {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  padding: 0 4px;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* Flow board: scrolls both directions, columns grow to content height */
 .flowBoard {
   flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.flowBoardInner {
   display: flex;
   gap: 12px;
   padding: 16px 20px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  position: relative;
   align-items: flex-start;
+  min-height: 100%;
+  width: max-content;
+  min-width: 100%;
+  transform-origin: top left;
 }
 
-/* ── SVG overlay for connection lines ── */
+/* SVG overlay for connection lines */
 .lineOverlay {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
   pointer-events: none;
   z-index: 10;
 }
 
-/* Visual paths never intercept clicks — SVG handles it via onContextMenu */
 .lineOverlay path, .lineOverlay marker {
   pointer-events: none;
 }
 
-/* ── Hint bar shown while drawing a connection ── */
 .drawHint {
   position: fixed;
   bottom: 16px;
@@ -135,7 +147,6 @@
   background: var(--bg-3);
 }
 
-/* ── Help Modal ── */
 .helpModal {
   position: fixed;
   inset: 0;
@@ -166,15 +177,6 @@
 
 .helpSection {
   margin-bottom: 20px;
-}
-
-.helpSection h4 {
-  margin: 0 0 8px 0;
-  color: var(--text-0);
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .shortcut {
@@ -208,9 +210,4 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  transition: background 0.15s;
-}
-
-.closeHelp:hover {
-  background: var(--accent-blue-dim);
 }
