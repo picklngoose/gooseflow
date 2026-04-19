@@ -59,6 +59,7 @@ export function PrepTimer({ side, label, duration = 300 }) {
 
   return (
     <div className={`${styles.timer} ${styles.prep} ${low ? styles.low : ''}`}>
+      <div className={styles.label}>{label}</div>
       <div className={styles.time}>{formatTime(remaining)}</div>
       <div className={styles.bar}><div className={styles.fill} style={{ width: `${pct * 100}%` }} /></div>
       <div className={styles.controls}>
