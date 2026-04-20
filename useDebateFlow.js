@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 
 let _uid = 0
 const uid = () => `${Date.now()}-${++_uid}`
@@ -32,7 +32,6 @@ const createFlow = (id) => ({
   createdAt: Date.now(),
 })
 
-// Convert any old saved format to the new items[] format
 const migrateFlow = (flow) => ({
   ...flow,
   connections: (flow.connections || []).map(c =>
@@ -82,18 +81,61 @@ const persist = (flows, activeId) => {
   } catch {}
 }
 
+// Build a cell-label map and connection summary for exports
+const buildExportMeta = (flow) => {
+  const cellLabel = {} // cellId -> "1AC #2"
+  flow.speeches.forEach(speech => {
+    speech.items.filter(it => it.type === 'cell' && it.content).forEach((cell, i) => {
+      cellLabel[cell.id] = `${speech.label} #${i + 1}`
+    })
+  })
+  const fromMap = {} // cellId -> [targetLabel]
+  const toMap   = {} // cellId -> [sourceLabel]
+  flow.connections.forEach(c => {
+    if (cellLabel[c.fromCellId] && cellLabel[c.toCellId]) {
+      ;(fromMap[c.fromCellId] = fromMap[c.fromCellId] || []).push(cellLabel[c.toCellId])
+      ;(toMap[c.toCellId]     = toMap[c.toCellId]     || []).push(cellLabel[c.fromCellId])
+    }
+  })
+  return { cellLabel, fromMap, toMap }
+}
+
 export function useDebateFlow() {
   const [flows, setFlows] = useState(load)
   const [activeFlowId, setActiveFlowId] = useState(loadActiveId)
   const [activeSpeechId, setActiveSpeechId] = useState('1ac')
+  const undoStack = useRef([]) // stores previous flow arrays
 
   const updateFlows = useCallback((updater) => {
     setFlows(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater
+      undoStack.current.push(prev)
+      if (undoStack.current.length > 50) undoStack.current.shift()
       persist(next)
       return next
     })
   }, [])
+
+  const undo = useCallback(() => {
+    const prev = undoStack.current.pop()
+    if (prev) {
+      setFlows(prev)
+      persist(prev)
+    }
+  }, [])
+
+  // Global Ctrl+Z / Cmd+Z
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return
+        e.preventDefault()
+        undo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo])
 
   const activeFlow = flows.find(f => f.id === activeFlowId) || flows[0]
 
@@ -124,17 +166,12 @@ export function useDebateFlow() {
   const updateSpeechItems = useCallback((speechId, fn) => {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowId) return f
-      return {
-        ...f,
-        speeches: f.speeches.map(s => s.id !== speechId ? s : { ...s, items: fn(s.items) })
-      }
+      return { ...f, speeches: f.speeches.map(s => s.id !== speechId ? s : { ...s, items: fn(s.items) }) }
     }))
   }, [activeFlowId, updateFlows])
 
   const updateCell = useCallback((speechId, cellId, updates) => {
-    updateSpeechItems(speechId, items =>
-      items.map(it => it.id === cellId ? { ...it, ...updates } : it)
-    )
+    updateSpeechItems(speechId, items => items.map(it => it.id === cellId ? { ...it, ...updates } : it))
   }, [updateSpeechItems])
 
   const addCell = useCallback((speechId) => {
@@ -184,23 +221,103 @@ export function useDebateFlow() {
     }))
   }, [activeFlowId, updateFlows])
 
-  const exportFlow = useCallback(() => {
-    if (!activeFlow) return
-    const lines = [`DEBATE FLOW: ${activeFlow.name}`, `Exported: ${new Date().toLocaleString()}`, '='.repeat(60)]
-    activeFlow.speeches.forEach(speech => {
+  // --- Text export (filled cells only, with connections) ---
+  const buildTextExport = useCallback((flow) => {
+    const { fromMap, toMap } = buildExportMeta(flow)
+    const lines = [`DEBATE FLOW: ${flow.name}`, `Exported: ${new Date().toLocaleString()}`, '='.repeat(60)]
+    flow.speeches.forEach(speech => {
+      const filledCells = speech.items.filter(it => it.type === 'cell' && it.content.trim())
+      if (filledCells.length === 0) return
       lines.push(`\n[${speech.label}] ${speech.description}`, '-'.repeat(40))
-      speech.items.filter(it => it.type === 'cell').forEach((cell, i) => {
-        lines.push(`${i + 1}.`)
-        if (cell.content) lines.push(`   ${cell.content.replace(/\n/g, '\n   ')}`)
+      filledCells.forEach((cell, i) => {
+        lines.push(`${i + 1}. ${cell.content.replace(/\n/g, '\n   ')}`)
+        if (fromMap[cell.id]) lines.push(`   → responds to: ${fromMap[cell.id].join(', ')}`)
+        if (toMap[cell.id])   lines.push(`   ← answered by: ${toMap[cell.id].join(', ')}`)
       })
     })
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    return lines.join('\n')
+  }, [])
+
+  const exportFlow = useCallback(() => {
+    if (!activeFlow) return
+    const text = buildTextExport(activeFlow)
+    const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `${activeFlow.name.replace(/\s+/g, '-').toLowerCase()}-flow.txt`
     a.click()
     URL.revokeObjectURL(url)
+  }, [activeFlow, buildTextExport])
+
+  const copyToClipboard = useCallback(async () => {
+    if (!activeFlow) return false
+    const text = buildTextExport(activeFlow)
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      return false
+    }
+  }, [activeFlow, buildTextExport])
+
+  // --- PDF export ---
+  const exportPDF = useCallback(() => {
+    if (!activeFlow) return
+    const { fromMap, toMap } = buildExportMeta(activeFlow)
+
+    const cols = activeFlow.speeches.map(speech => {
+      const cells = speech.items.filter(it => it.type === 'cell' && it.content.trim())
+      const isAff = speech.side === 'aff'
+      const cellsHtml = cells.length === 0
+        ? '<div class="empty">—</div>'
+        : cells.map((cell, i) => {
+            const conns = [
+              ...(fromMap[cell.id] || []).map(l => `→ ${l}`),
+              ...(toMap[cell.id]   || []).map(l => `← ${l}`),
+            ]
+            return `<div class="cell ${speech.side}">
+              <div class="cell-content">${cell.content.replace(/\n/g, '<br>')}</div>
+              ${conns.length ? `<div class="cell-conns">${conns.join(' · ')}</div>` : ''}
+            </div>`
+          }).join('')
+      return `<div class="col">
+        <div class="col-header ${speech.side}">${speech.label}<span class="col-desc">${speech.description}</span></div>
+        <div class="col-cells">${cellsHtml}</div>
+      </div>`
+    }).join('')
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>gooseflow — ${activeFlow.name}</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'IBM Plex Mono', monospace; font-size: 9px; background: #fff; color: #111; }
+      h1 { font-size: 13px; font-weight: 700; padding: 8px 12px; border-bottom: 1px solid #ccc; }
+      .meta { font-size: 8px; color: #888; padding: 4px 12px 8px; border-bottom: 1px solid #eee; }
+      .board { display: flex; gap: 6px; padding: 10px 12px; align-items: flex-start; }
+      .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+      .col-header { font-size: 11px; font-weight: 700; padding: 4px 6px; border-radius: 3px; margin-bottom: 2px; display: flex; flex-direction: column; gap: 1px; }
+      .col-header.aff { background: #e6fff7; color: #007a50; border-left: 3px solid #00a872; }
+      .col-header.neg { background: #e6f0ff; color: #1a5fc8; border-left: 3px solid #3d7fcc; }
+      .col-desc { font-size: 7px; font-weight: 400; opacity: 0.7; }
+      .col-cells { display: flex; flex-direction: column; gap: 3px; }
+      .cell { border: 1px solid #ddd; border-radius: 3px; padding: 4px 5px; background: #fafafa; }
+      .cell.aff { border-left: 2px solid #00a872; }
+      .cell.neg { border-left: 2px solid #3d7fcc; }
+      .cell-content { line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+      .cell-conns { font-size: 7px; color: #999; margin-top: 2px; font-style: italic; }
+      .empty { color: #ccc; font-style: italic; font-size: 8px; padding: 4px; }
+      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style></head><body>
+    <h1>gooseflow — ${activeFlow.name}</h1>
+    <div class="meta">Exported ${new Date().toLocaleString()}</div>
+    <div class="board">${cols}</div>
+    </body></html>`
+
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => { win.focus(); win.print() }, 400)
   }, [activeFlow])
 
   return {
@@ -212,6 +329,7 @@ export function useDebateFlow() {
     addEmptySpace, deleteEmptySpace,
     reorderItems,
     addConnection, removeConnection,
-    exportFlow,
+    exportFlow, exportPDF, copyToClipboard,
+    undo,
   }
 }
