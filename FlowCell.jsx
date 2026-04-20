@@ -1,4 +1,4 @@
-import { useRef, useCallback, forwardRef } from 'react'
+import { useRef, useCallback, useState, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
 // 6 distinct colors cycling through the existing palette
@@ -31,6 +31,7 @@ export const FlowCell = forwardRef(function FlowCell(
   ref
 ) {
   const textRef = useRef(null)
+  const [hovered, setHovered] = useState(false)
 
   const handleKey = useCallback((e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -59,8 +60,8 @@ export const FlowCell = forwardRef(function FlowCell(
       ref={ref}
       className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
       style={tag ? { borderLeftColor: tag.color } : undefined}
-      onMouseEnter={() => onCellHover && onCellHover(true)}
-      onMouseLeave={() => onCellHover && onCellHover(false)}
+      onMouseEnter={() => { setHovered(true); onCellHover && onCellHover(true) }}
+      onMouseLeave={() => { setHovered(false); onCellHover && onCellHover(false) }}
     >
       {tag && (
         <span className={styles.tagPill} style={{ color: tag.color, borderColor: tag.color }}>
@@ -72,7 +73,7 @@ export const FlowCell = forwardRef(function FlowCell(
         value={cell.content}
         onChange={handleChange}
         onKeyDown={handleKey}
-        placeholder="flow..."
+        placeholder={hovered ? "type '[tag]:' to label" : "flow..."}
         rows={1}
         className={styles.textarea}
       />
