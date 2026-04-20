@@ -340,8 +340,7 @@ export default function App() {
                 <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
-              <button className={styles.closeHelp} onClick={() => setShowHelp(false)}>Close</button>
-            </div>
+              </div>
           </div>
         )}
       </main>
