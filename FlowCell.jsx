@@ -81,6 +81,7 @@ export const FlowCell = forwardRef(function FlowCell(
     <div
       ref={ref}
       className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
+      data-flowcell
       style={tag ? { borderLeftColor: tag.color } : undefined}
       onMouseEnter={() => { setHovered(true); onCellHover && onCellHover(true) }}
       onMouseLeave={() => { setHovered(false); onCellHover && onCellHover(false) }}
