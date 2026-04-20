@@ -244,7 +244,7 @@ export default function App() {
               <button className={styles.zoomBtn} onClick={() => setZoom(z => Math.min(2, +(z + 0.1).toFixed(1)))} title="Zoom in">+</button>
               <button className={styles.zoomBtn} onClick={() => setZoom(1)} title="Reset zoom" style={{fontSize:10}}>↺</button>
             </div>
-            <button className={styles.helpBtn} onClick={() => setShowHelp(!showHelp)} title="Help">💡</button>
+            <button className={styles.helpBtn} onClick={() => setShowHelp(!showHelp)} title="Help">?</button>
           </div>
         </div>
 
