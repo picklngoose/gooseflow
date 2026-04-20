@@ -1,4 +1,4 @@
-import { useRef, useCallback, forwardRef } from 'react'
+import { useRef, useCallback, useState, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
 const TAG_COLORS = [
@@ -37,6 +37,7 @@ export const FlowCell = forwardRef(function FlowCell(
   ref
 ) {
   const textareaRef = useRef(null)
+  const [hovered, setHovered] = useState(false)
 
   const tag = detectTag(cell.content)
 
@@ -80,8 +81,8 @@ export const FlowCell = forwardRef(function FlowCell(
       ref={ref}
       className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
       style={tag ? { borderLeftColor: tag.color } : undefined}
-      onMouseEnter={() => onCellHover && onCellHover(true)}
-      onMouseLeave={() => onCellHover && onCellHover(false)}
+      onMouseEnter={() => { setHovered(true); onCellHover && onCellHover(true) }}
+      onMouseLeave={() => { setHovered(false); onCellHover && onCellHover(false) }}
     >
       <div className={styles.textareaWrapper}>
         {renderOverlay()}
@@ -90,7 +91,7 @@ export const FlowCell = forwardRef(function FlowCell(
           value={cell.content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={columnHovered ? "type '[tag]:' to label" : "flow..."}
+          placeholder={hovered ? "type '[tag]:' to label" : "flow..."}
           rows={1}
           className={`${styles.textarea} ${tag ? styles.textareaTagged : ''}`}
         />
