@@ -61,7 +61,7 @@ export const FlowCell = forwardRef(function FlowCell(
     return (
       <div className={styles.tagOverlay} aria-hidden="true">
         <span style={{ color: tag.color, fontWeight: 600 }}>{firstWord}</span>
-        <span style={{ color: 'transparent' }}>{rest}</span>
+        <span style={{ color: 'var(--text-0)' }}>{rest}</span>
       </div>
     )
   }
