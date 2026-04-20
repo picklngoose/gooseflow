@@ -351,8 +351,7 @@ export default function App() {
                 <div className={styles.shortcut}><kbd>b</kbd><span>Add spacer to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target)</span></div>
                 <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell or connection</span></div>
-                <div className={styles.shortcut}><kbd>Ctrl+Enter</kbd><span>New argument below (in cell)</span></div>
-                <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
+                <div className={styles.shortcut}><kbd>Drag Edge</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
               </div>
