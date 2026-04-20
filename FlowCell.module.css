@@ -84,3 +84,20 @@
   right: -10px;
   transform: translateY(-50%);
 }
+
+.tagPill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 1px 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.85;
+  background: transparent;
+}
