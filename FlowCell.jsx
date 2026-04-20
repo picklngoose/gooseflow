@@ -23,7 +23,6 @@ const TAG_COLORS = [
 function detectTag(content) {
   if (!content) return null
   const firstWord = content.trimStart().split(/\s/)[0]
-  // Trigger as soon as first word ends with : or - and has at least 1 char before it
   const match = firstWord.match(/^(.+)[:–-]$/)
   if (!match) return null
   const label = match[1]
@@ -34,7 +33,7 @@ function detectTag(content) {
 }
 
 export const FlowCell = forwardRef(function FlowCell(
-  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, onKnobClick, onCellHover, columnHovered },
+  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, onKnobClick, onCellHover },
   ref
 ) {
   const textareaRef = useRef(null)
@@ -50,20 +49,12 @@ export const FlowCell = forwardRef(function FlowCell(
   }, [onUpdate])
 
   const handleKeyDown = useCallback((e) => {
-    // Only Cmd/Ctrl+Enter adds a new cell — plain Enter is just a newline
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       onAddBelow()
     }
   }, [onAddBelow])
 
-  const handleKnobClick = useCallback((e) => {
-    e.stopPropagation()
-    e.preventDefault()
-    if (onKnobClick) onKnobClick()
-  }, [onKnobClick])
-
-  // Build overlay spans: colored first word + plain rest
   const renderOverlay = () => {
     if (!tag) return null
     const { firstWord } = tag
@@ -86,6 +77,8 @@ export const FlowCell = forwardRef(function FlowCell(
       onMouseEnter={() => { setHovered(true); onCellHover && onCellHover(true) }}
       onMouseLeave={() => { setHovered(false); onCellHover && onCellHover(false) }}
     >
+      <div className={styles.grip} data-grip title="Drag to reorder">⠿</div>
+
       <div className={styles.textareaWrapper}>
         {renderOverlay()}
         <textarea
@@ -98,22 +91,6 @@ export const FlowCell = forwardRef(function FlowCell(
           className={`${styles.textarea} ${tag ? styles.textareaTagged : ''}`}
         />
       </div>
-      {onKnobClick && (
-        <>
-          <button
-            className={`${styles.knob} ${styles.knobLeft} ${isSelected ? styles.knobActive : ''}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={handleKnobClick}
-            title={isSelected ? 'Deselect' : 'Connect from left'}
-          />
-          <button
-            className={`${styles.knob} ${styles.knobRight} ${isSelected ? styles.knobActive : ''}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={handleKnobClick}
-            title={isSelected ? 'Deselect' : 'Connect from right'}
-          />
-        </>
-      )}
     </div>
   )
 })
