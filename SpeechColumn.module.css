@@ -21,8 +21,12 @@
   flex-direction: column;
   gap: 4px;
   flex-shrink: 0;
-  padding: 0 2px 6px;
+  padding: 4px 4px 6px;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-0);
+  z-index: 11;
 }
 
 .label {
