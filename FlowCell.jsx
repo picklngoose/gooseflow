@@ -1,27 +1,24 @@
-import { useRef, useCallback, useState, forwardRef } from 'react'
+import { useRef, useCallback, useState, useEffect, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
-// 6 distinct colors cycling through the existing palette
 const TAG_COLORS = [
-  '#ffd166', // yellow
-  '#00e5a0', // aff green
-  '#4d9fff', // blue
-  '#b580ff', // purple
-  '#ff9f5a', // orange
-  '#ff6b9d', // pink
+  '#ffd166',
+  '#00e5a0',
+  '#4d9fff',
+  '#b580ff',
+  '#ff9f5a',
+  '#ff6b9d',
 ]
 
 function detectTag(content) {
   if (!content) return null
   const firstWord = content.trimStart().split(/\s/)[0]
-  if (firstWord.length >= 1 && (firstWord.endsWith(':') || firstWord.endsWith('-'))) {
+  if (firstWord.length >= 2 && (firstWord.endsWith(':') || firstWord.endsWith('-'))) {
     const label = firstWord.slice(0, -1)
     if (!label) return null
-    // hash label to a stable color
     let hash = 0
     for (let i = 0; i < label.length; i++) hash += label.charCodeAt(i)
-    const color = TAG_COLORS[hash % TAG_COLORS.length]
-    return { label, color }
+    return { label, suffix: firstWord.slice(-1), color: TAG_COLORS[hash % TAG_COLORS.length] }
   }
   return null
 }
@@ -30,22 +27,37 @@ export const FlowCell = forwardRef(function FlowCell(
   { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, onKnobClick, onCellHover },
   ref
 ) {
-  const textRef = useRef(null)
+  const editRef = useRef(null)
   const [hovered, setHovered] = useState(false)
+  const tag = detectTag(cell.content)
 
-  const handleKey = useCallback((e) => {
+  // Sync contenteditable content when cell.content changes externally
+  useEffect(() => {
+    const el = editRef.current
+    if (!el) return
+    // Only update DOM if it differs — avoids caret jumping
+    if (el.innerText !== cell.content) {
+      el.innerText = cell.content
+    }
+  }, [cell.content])
+
+  const handleInput = useCallback((e) => {
+    const text = e.currentTarget.innerText
+    onUpdate({ content: text })
+    // Auto-resize is handled by CSS (min-height + word-wrap)
+  }, [onUpdate])
+
+  const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       onAddBelow()
     }
+    // Prevent actual newlines — this is a single-line-ish flow cell
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      onAddBelow()
+    }
   }, [onAddBelow])
-
-  const handleChange = useCallback((e) => {
-    onUpdate({ content: e.target.value })
-    const el = e.target
-    el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
-  }, [onUpdate])
 
   const handleKnobClick = useCallback((e) => {
     e.stopPropagation()
@@ -53,7 +65,18 @@ export const FlowCell = forwardRef(function FlowCell(
     if (onKnobClick) onKnobClick()
   }, [onKnobClick])
 
-  const tag = detectTag(cell.content)
+  // Build the rendered content with colored first word if tag detected
+  const renderContent = () => {
+    if (!tag || !cell.content) return null
+    const firstWord = cell.content.trimStart().split(/\s/)[0]
+    const rest = cell.content.slice(cell.content.indexOf(firstWord) + firstWord.length)
+    return (
+      <>
+        <span style={{ color: tag.color, fontWeight: 600 }}>{firstWord}</span>
+        {rest}
+      </>
+    )
+  }
 
   return (
     <div
@@ -63,20 +86,43 @@ export const FlowCell = forwardRef(function FlowCell(
       onMouseEnter={() => { setHovered(true); onCellHover && onCellHover(true) }}
       onMouseLeave={() => { setHovered(false); onCellHover && onCellHover(false) }}
     >
-      {tag && (
-        <span className={styles.tagPill} style={{ color: tag.color, borderColor: tag.color }}>
-          {tag.label}
-        </span>
+      {tag ? (
+        // Colored first word: render as a div with a hidden real contenteditable
+        // We use a layered approach: display div on top, real input underneath
+        <div className={styles.tagTextWrapper}>
+          <div className={styles.tagDisplay} aria-hidden="true">
+            <span style={{ color: tag.color, fontWeight: 600 }}>
+              {cell.content.trimStart().split(/\s/)[0]}
+            </span>
+            {cell.content.slice(cell.content.indexOf(cell.content.trimStart().split(/\s/)[0]) + cell.content.trimStart().split(/\s/)[0].length)}
+          </div>
+          <textarea
+            value={cell.content}
+            onChange={(e) => {
+              onUpdate({ content: e.target.value })
+              e.target.style.height = 'auto'
+              e.target.style.height = e.target.scrollHeight + 'px'
+            }}
+            onKeyDown={handleKeyDown}
+            rows={1}
+            className={`${styles.textarea} ${styles.textareaTagged}`}
+            spellCheck={false}
+          />
+        </div>
+      ) : (
+        <textarea
+          value={cell.content}
+          onChange={(e) => {
+            onUpdate({ content: e.target.value })
+            e.target.style.height = 'auto'
+            e.target.style.height = e.target.scrollHeight + 'px'
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={hovered ? "type '[tag]:' to label" : "flow..."}
+          rows={1}
+          className={styles.textarea}
+        />
       )}
-      <textarea
-        ref={textRef}
-        value={cell.content}
-        onChange={handleChange}
-        onKeyDown={handleKey}
-        placeholder={hovered ? "type '[tag]:' to label" : "flow..."}
-        rows={1}
-        className={styles.textarea}
-      />
       {onKnobClick && (
         <>
           <button
