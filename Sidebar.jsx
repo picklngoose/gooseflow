@@ -6,9 +6,18 @@ import logoSrc from './logo.png'
 export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport, onExportPDF, onCopyClipboard, width }) {
   const [editingId, setEditingId] = useState(null)
   const [editingName, setEditingName] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const startEdit = (flow) => { setEditingId(flow.id); setEditingName(flow.name) }
   const commitEdit = () => { if (editingName.trim()) onRenameFlow(editingId, editingName.trim()); setEditingId(null) }
+
+  const handleCopy = async () => {
+    const ok = await onCopyClipboard()
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   return (
     <aside className={styles.sidebar} style={width ? { width } : {}}>
@@ -67,7 +76,9 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
       <div className={styles.footer}>
         <button className={styles.exportBtn} onClick={onExportPDF} title="Export as PDF">⎙ pdf</button>
         <button className={styles.exportBtn} onClick={onExport} title="Download as .txt">↓ txt</button>
-        <button className={styles.exportBtn} onClick={onCopyClipboard} title="Copy to clipboard">⎘ copy</button>
+        <button className={`${styles.exportBtn} ${copied ? styles.copied : ''}`} onClick={handleCopy} title="Copy to clipboard">
+          {copied ? '✓ copied!' : '⎘ copy'}
+        </button>
       </div>
     </aside>
   )
