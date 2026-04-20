@@ -27,8 +27,9 @@ function detectTag(content) {
   const match = firstWord.match(/^(.+)[:–-]$/)
   if (!match) return null
   const label = match[1]
+  const baseLabel = label.replace(/\d+$/, '')
   let hash = 5381
-  for (let i = 0; i < label.length; i++) hash = (hash * 33) ^ label.charCodeAt(i)
+  for (let i = 0; i < baseLabel.length; i++) hash = (hash * 33) ^ baseLabel.charCodeAt(i)
   return { label, firstWord, color: TAG_COLORS[Math.abs(hash) % TAG_COLORS.length] }
 }
 
