@@ -2,12 +2,22 @@ import { useRef, useCallback, useState, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
 const TAG_COLORS = [
-  '#ffd166',
-  '#00e5a0',
-  '#4d9fff',
-  '#b580ff',
-  '#ff9f5a',
-  '#ff6b9d',
+  '#ffd166', // yellow
+  '#00e5a0', // green
+  '#4d9fff', // blue
+  '#b580ff', // purple
+  '#ff9f5a', // orange
+  '#ff6b9d', // pink
+  '#00d4ff', // cyan
+  '#ff4d4d', // red
+  '#a8ff78', // lime
+  '#ffb347', // amber
+  '#c084fc', // violet
+  '#34d399', // emerald
+  '#f472b6', // rose
+  '#60a5fa', // sky
+  '#fb923c', // tangerine
+  '#a3e635', // yellow-green
 ]
 
 function detectTag(content) {
