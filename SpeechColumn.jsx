@@ -157,6 +157,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   onAddBelow={() => onAddCell(speech.id)}
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
+                  columnHovered={isHovered}
                   onCellHover={onCellHover ? (entering) => onCellHover(entering ? speech.id : null, entering ? item.id : null, entering ? 'cell' : null) : null}
                   ref={el => {
                     if (el) {
