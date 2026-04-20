@@ -12,7 +12,7 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
   return (
     <aside className={styles.sidebar} style={width ? { width } : {}}>
       <div className={styles.logo}>
-        <span className={styles.logoMark}>⬡</span>
+        <img src="/gooseflow/logo.png" alt="gooseflow" className={styles.logoMark} />
         <span className={styles.logoText}>gooseflow</span>
       </div>
 
