@@ -56,7 +56,19 @@ export default function App() {
 
 
 
-  // Sidebar resize
+  // Blur active textarea when clicking outside any cell
+  useEffect(() => {
+    const onMouseDown = (e) => {
+      const active = document.activeElement
+      if (active?.tagName !== 'TEXTAREA') return
+      if (!active.closest('[data-flowcell]')) return
+      if (!e.target.closest('[data-flowcell]')) active.blur()
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    return () => window.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
+
   const startSidebarResize = useCallback((e) => {
     e.preventDefault()
     resizingRef.current = true
@@ -351,7 +363,8 @@ export default function App() {
                 <div className={styles.shortcut}><kbd>b</kbd><span>Add spacer to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target)</span></div>
                 <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell or connection</span></div>
-                <div className={styles.shortcut}><kbd>Drag edge of cell</kbd><span>Reorder items within column</span></div>
+                <div className={styles.shortcut}><kbd>Ctrl+Enter</kbd><span>New argument below (in cell)</span></div>
+                <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
               </div>
