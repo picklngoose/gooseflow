@@ -35,6 +35,7 @@ export default function App() {
   const hoveredConnRef = useRef(null) // always current — read by onKey without stale closure
   const [, forceUpdate] = useState(0)
   const hoveredCellRef = useRef(null) // { speechId, cellId, type }
+  const [hoveredCellType, setHoveredCellType] = useState(null) // 'cell' | 'space' | null — triggers render
 
   const cellRefsMap = useRef(new Map())
   const flowBoardRef = useRef(null)
@@ -311,7 +312,7 @@ export default function App() {
               onKnobClick={handleKnobClick}
               cellRefsMap={cellRefsMap}
               onHover={setHoveredSpeechId}
-              onCellHover={(speechId, cellId, type) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId, type } : null }}
+              onCellHover={(speechId, cellId, type) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId, type } : null; setHoveredCellType(speechId ? type : null) }}
               isHovered={hoveredSpeechId === speech.id}
               onDragMove={() => forceUpdate(n => n + 1)}
             />
@@ -324,6 +325,18 @@ export default function App() {
             {pendingFrom.length === 1
               ? 'click or press c on another cell to connect · x to delete hovered · Esc to cancel'
               : `${pendingFrom.length} selected · click or press c in another speech · Esc to cancel`}
+          </div>
+        )}
+
+        {!isPending && hoveredCellType === 'cell' && (
+          <div className={styles.cellHint}>
+            c · connect &nbsp;·&nbsp; x · delete &nbsp;·&nbsp; a · add below &nbsp;·&nbsp; b · blank space
+          </div>
+        )}
+
+        {!isPending && hoveredCellType === 'space' && (
+          <div className={styles.cellHint}>
+            x · delete spacer
           </div>
         )}
 
