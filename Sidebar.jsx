@@ -3,7 +3,7 @@ import { PrepTimer } from './Timer'
 import styles from './Sidebar.module.css'
 import logoSrc from './logo.png'
 
-export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport, width }) {
+export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport, onExportPDF, onCopyClipboard, width }) {
   const [editingId, setEditingId] = useState(null)
   const [editingName, setEditingName] = useState('')
 
@@ -65,7 +65,9 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
       </div>
 
       <div className={styles.footer}>
-        <button className={styles.exportBtn} onClick={onExport}>↓ export</button>
+        <button className={styles.exportBtn} onClick={onExportPDF} title="Export as PDF">⎙ pdf</button>
+        <button className={styles.exportBtn} onClick={onExport} title="Download as .txt">↓ txt</button>
+        <button className={styles.exportBtn} onClick={onCopyClipboard} title="Copy to clipboard">⎘ copy</button>
       </div>
     </aside>
   )
