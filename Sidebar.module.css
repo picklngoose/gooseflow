@@ -232,3 +232,8 @@
   border-color: var(--border-bright);
   background: var(--bg-3);
 }
+
+.exportBtn.copied {
+  color: var(--accent-aff);
+  border-color: var(--accent-aff-dim);
+}
