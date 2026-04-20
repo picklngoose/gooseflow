@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PrepTimer } from './Timer'
 import styles from './Sidebar.module.css'
+import logoSrc from './logo.png'
 
 export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onExport, width }) {
   const [editingId, setEditingId] = useState(null)
@@ -12,7 +13,7 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
   return (
     <aside className={styles.sidebar} style={width ? { width } : {}}>
       <div className={styles.logo}>
-        <img src="/gooseflow/logo.png" alt="gooseflow" className={styles.logoMark} />
+        <img src={logoSrc} alt="gooseflow" className={styles.logoMark} />
         <span className={styles.logoText}>gooseflow</span>
       </div>
 
