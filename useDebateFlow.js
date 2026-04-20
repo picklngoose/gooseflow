@@ -75,7 +75,9 @@ const loadActiveId = () => {
 
 const persist = (flows, activeId) => {
   try {
-    localStorage.setItem('debate-flows', JSON.stringify(flows))
+    if (flows !== null && flows !== undefined) {
+      localStorage.setItem('debate-flows', JSON.stringify(flows))
+    }
     if (activeId !== undefined) localStorage.setItem('debate-active-flow', JSON.stringify(activeId))
   } catch {}
 }
