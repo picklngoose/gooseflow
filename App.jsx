@@ -13,7 +13,7 @@ export default function App() {
     addEmptySpace, deleteEmptySpace,
     reorderItems,
     addConnection, removeConnection,
-    exportFlow,
+    exportFlow, exportPDF, copyToClipboard,
   } = useDebateFlow()
 
   const [showHelp, setShowHelp] = useState(false)
@@ -216,6 +216,8 @@ export default function App() {
           onDeleteFlow={deleteFlow}
           onRenameFlow={renameFlow}
           onExport={exportFlow}
+        onExportPDF={exportPDF}
+        onCopyClipboard={copyToClipboard}
           width={sidebarWidth}
         />
         <div
