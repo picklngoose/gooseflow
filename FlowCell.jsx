@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, forwardRef } from 'react'
+import { useRef, useCallback, useState, useEffect, forwardRef } from 'react'
 import styles from './FlowCell.module.css'
 
 const TAG_COLORS = [
@@ -40,6 +40,14 @@ export const FlowCell = forwardRef(function FlowCell(
   const [hovered, setHovered] = useState(false)
 
   const tag = detectTag(cell.content)
+
+  // Resize textarea to fit content on mount and whenever content changes
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [cell.content])
 
   const handleChange = useCallback((e) => {
     onUpdate({ content: e.target.value })
