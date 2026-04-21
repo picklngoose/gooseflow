@@ -177,6 +177,7 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
         })}
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>+ add</button>
       </div>
+      <div className={styles.columnFill} />
 
       {drag && createPortal(
         <div
