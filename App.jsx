@@ -21,6 +21,26 @@ export default function App() {
   const [sidebarWidth, setSidebarWidth] = useState(220)
   const resizingRef = useRef(false)
 
+  const [pendingFrom, setPendingFrom] = useState([])
+  const [cursor, setCursor] = useState(null)
+  const [hoveredSpeechId, setHoveredSpeechId] = useState(null)
+  const [highlightConnId, setHighlightConnId] = useState(null)
+  const hoveredConnRef = useRef(null)
+  const [, forceUpdate] = useState(0)
+  const hoveredCellRef = useRef(null)
+  const [hoveredCellType, setHoveredCellType] = useState(null)
+
+  // Refs so keyboard handler always has current values without stale closures
+  const hoveredSpeechIdRef = useRef(hoveredSpeechId)
+  useEffect(() => { hoveredSpeechIdRef.current = hoveredSpeechId }, [hoveredSpeechId])
+
+  const cellRefsMap = useRef(new Map())
+  const flowBoardRef = useRef(null)
+  const svgRef = useRef(null)
+  const connPathsRef = useRef(new Map())
+  const activeFlowRef = useRef(activeFlow)
+  useEffect(() => { activeFlowRef.current = activeFlow }, [activeFlow])
+
   const deleteCellAndRedraw = useCallback((speechId, cellId) => {
     deleteCell(speechId, cellId)
     requestAnimationFrame(() => {
@@ -28,21 +48,6 @@ export default function App() {
       requestAnimationFrame(() => forceUpdate(n => n + 1))
     })
   }, [deleteCell])
-  const [pendingFrom, setPendingFrom] = useState([])
-  const [cursor, setCursor] = useState(null)
-  const [hoveredSpeechId, setHoveredSpeechId] = useState(null)
-  const [highlightConnId, setHighlightConnId] = useState(null) // visual only
-  const hoveredConnRef = useRef(null) // always current — read by onKey without stale closure
-  const [, forceUpdate] = useState(0)
-  const hoveredCellRef = useRef(null) // { speechId, cellId, type }
-  const [hoveredCellType, setHoveredCellType] = useState(null) // 'cell' | 'space' | null — triggers render
-
-  const cellRefsMap = useRef(new Map())
-  const flowBoardRef = useRef(null)
-  const svgRef = useRef(null)
-  const connPathsRef = useRef(new Map()) // conn.id → <path> DOM element
-  const activeFlowRef = useRef(activeFlow)
-  useEffect(() => { activeFlowRef.current = activeFlow }, [activeFlow])
 
   // Redraw lines on scroll/resize
   useEffect(() => {
@@ -54,14 +59,11 @@ export default function App() {
     return () => { el.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
   }, [])
 
-
-
   // Blur active textarea when clicking outside any cell
   useEffect(() => {
     const onMouseDown = (e) => {
       const active = document.activeElement
       if (active?.tagName !== 'TEXTAREA') return
-      if (!active.closest('[data-flowcell]')) return
       if (!e.target.closest('[data-flowcell]')) active.blur()
     }
     window.addEventListener('mousedown', onMouseDown)
@@ -88,9 +90,33 @@ export default function App() {
     return () => clearTimeout(t)
   }, [activeFlowId])
 
+  // handleKnobClick defined early, stored in ref so keyboard handler can call it without stale closure
+  const handleKnobClickRef = useRef(null)
+
+  const handleKnobClick = useCallback((speechId, cellId) => {
+    setPendingFrom(prev => {
+      if (prev.length === 0) return [{ speechId, cellId }]
+      const fromSpeechId = prev[0].speechId
+      if (speechId === fromSpeechId) {
+        const already = prev.some(p => p.cellId === cellId)
+        if (already) {
+          const next = prev.filter(p => p.cellId !== cellId)
+          if (next.length === 0) setCursor(null)
+          return next
+        }
+        return [...prev, { speechId, cellId }]
+      }
+      // Different speech — fire connections
+      prev.forEach(src => addConnection(src.cellId, cellId))
+      setCursor(null)
+      return []
+    })
+  }, [addConnection])
+
+  useEffect(() => { handleKnobClickRef.current = handleKnobClick }, [handleKnobClick])
+
   useEffect(() => {
     const onMove = (e) => {
-      // Update draft line cursor
       if (pendingFrom.length > 0) {
         const svgEl = svgRef.current
         if (svgEl) {
@@ -98,7 +124,6 @@ export default function App() {
           setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top })
         }
       }
-      // Track nearest connection for x-to-delete hover
       const svgEl = svgRef.current
       if (!svgEl || connPathsRef.current.size === 0) {
         hoveredConnRef.current = null
@@ -125,21 +150,30 @@ export default function App() {
       hoveredConnRef.current = bestId
       setHighlightConnId(prev => prev === bestId ? prev : bestId)
     }
+
     const onKey = (e) => {
       if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
-      if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return
+      // blur any focused textarea so shortcuts work after typing
+      if (document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT') {
+        if (['a','b','c','x'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+          document.activeElement.blur()
+        } else {
+          return
+        }
+      }
+      const speechId = hoveredSpeechIdRef.current
       if (e.key === 'a' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        if (hoveredSpeechId) addCell(hoveredSpeechId)
+        if (speechId) addCell(speechId)
       }
       if (e.key === 'b' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
-        if (hoveredSpeechId) addEmptySpace(hoveredSpeechId)
+        if (speechId) addEmptySpace(speechId)
       }
       if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         const hovered = hoveredCellRef.current
-        if (hovered) handleKnobClick(hovered.speechId, hovered.cellId)
+        if (hovered && handleKnobClickRef.current) handleKnobClickRef.current(hovered.speechId, hovered.cellId)
       }
       if (e.key === 'x' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
@@ -158,29 +192,7 @@ export default function App() {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('keydown', onKey) }
-  }, [pendingFrom.length, hoveredSpeechId, addCell, addEmptySpace, deleteEmptySpace, removeConnection, deleteCellAndRedraw])
-
-  const handleKnobClick = useCallback((speechId, cellId) => {
-    if (pendingFrom.length === 0) {
-      setPendingFrom([{ speechId, cellId }])
-      return
-    }
-    const fromSpeechId = pendingFrom[0].speechId
-    if (speechId === fromSpeechId) {
-      const already = pendingFrom.some(p => p.cellId === cellId)
-      if (already) {
-        const next = pendingFrom.filter(p => p.cellId !== cellId)
-        setPendingFrom(next)
-        if (next.length === 0) setCursor(null)
-      } else {
-        setPendingFrom(prev => [...prev, { speechId, cellId }])
-      }
-      return
-    }
-    pendingFrom.forEach(src => addConnection(src.cellId, cellId))
-    setPendingFrom([])
-    setCursor(null)
-  }, [pendingFrom, addConnection])
+  }, [pendingFrom.length, addCell, addEmptySpace, deleteEmptySpace, removeConnection, deleteCellAndRedraw])
 
   const getLineCoords = useCallback((fromCellId, toCellId) => {
     const fromEl = cellRefsMap.current.get(fromCellId)
@@ -190,7 +202,6 @@ export default function App() {
     const svgRect = svgEl.getBoundingClientRect()
     const fromRect = fromEl.getBoundingClientRect()
     const toRect = toEl.getBoundingClientRect()
-    // Pick the correct edges depending on direction
     const goingRight = fromRect.left < toRect.left
     return {
       x1: (goingRight ? fromRect.right : fromRect.left) - svgRect.left,
@@ -199,6 +210,7 @@ export default function App() {
       y2: toRect.top + toRect.height / 2 - svgRect.top,
     }
   }, [])
+
   const getKnobCoords = useCallback((cellId) => {
     const el = cellRefsMap.current.get(cellId)
     const svgEl = svgRef.current
@@ -228,8 +240,8 @@ export default function App() {
           onDeleteFlow={deleteFlow}
           onRenameFlow={renameFlow}
           onExport={exportFlow}
-        onExportPDF={exportPDF}
-        onCopyClipboard={copyToClipboard}
+          onExportPDF={exportPDF}
+          onCopyClipboard={copyToClipboard}
           width={sidebarWidth}
         />
         <div
@@ -313,26 +325,25 @@ export default function App() {
             className={styles.flowBoardInner}
             style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: zoom !== 1 ? `${100/zoom}%` : undefined }}
           >
-
-          {activeFlow.speeches.map(speech => (
-            <SpeechColumn
-              key={speech.id}
-              speech={speech}
-              onUpdateCell={updateCell}
-              onAddCell={addCell}
-              onDeleteCell={deleteCellAndRedraw}
-              onAddEmptySpace={addEmptySpace}
-              onDeleteEmptySpace={deleteEmptySpace}
-              onReorderItems={reorderItems}
-              pendingCellIds={pendingCellIds}
-              onKnobClick={handleKnobClick}
-              cellRefsMap={cellRefsMap}
-              onHover={setHoveredSpeechId}
-              onCellHover={(speechId, cellId, type) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId, type } : null; setHoveredCellType(speechId ? type : null) }}
-              isHovered={hoveredSpeechId === speech.id}
-              onDragMove={() => forceUpdate(n => n + 1)}
-            />
-          ))}
+            {activeFlow.speeches.map(speech => (
+              <SpeechColumn
+                key={speech.id}
+                speech={speech}
+                onUpdateCell={updateCell}
+                onAddCell={addCell}
+                onDeleteCell={deleteCellAndRedraw}
+                onAddEmptySpace={addEmptySpace}
+                onDeleteEmptySpace={deleteEmptySpace}
+                onReorderItems={reorderItems}
+                pendingCellIds={pendingCellIds}
+                onKnobClick={handleKnobClick}
+                cellRefsMap={cellRefsMap}
+                onHover={setHoveredSpeechId}
+                onCellHover={(speechId, cellId, type) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId, type } : null; setHoveredCellType(speechId ? type : null) }}
+                isHovered={hoveredSpeechId === speech.id}
+                onDragMove={() => forceUpdate(n => n + 1)}
+              />
+            ))}
           </div>
         </div>
 
@@ -366,10 +377,10 @@ export default function App() {
                 <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target)</span></div>
                 <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell or connection</span></div>
                 <div className={styles.shortcut}><kbd>Ctrl+Enter</kbd><span>New argument below (in cell)</span></div>
-                <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
+                <div className={styles.shortcut}><kbd>Drag ⠿</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
-              </div>
+            </div>
           </div>
         )}
       </main>
