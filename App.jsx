@@ -56,17 +56,6 @@ export default function App() {
 
 
 
-  // Blur active textarea when clicking outside any cell
-  useEffect(() => {
-    const onMouseDown = (e) => {
-      const active = document.activeElement
-      if (active?.tagName !== 'TEXTAREA') return
-      if (!e.target.closest('[data-flowcell]')) active.blur()
-    }
-    window.addEventListener('mousedown', onMouseDown)
-    return () => window.removeEventListener('mousedown', onMouseDown)
-  }, [])
-
   // Sidebar resize
   const startSidebarResize = useCallback((e) => {
     e.preventDefault()
