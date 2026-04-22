@@ -12,7 +12,6 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
   const startDrag = useCallback((e, itemId) => {
     if (e.button !== 0) return
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return
-    if (!e.target.closest('[data-grip]')) return
     e.preventDefault()
 
     const el = itemRefs.current[itemId]
@@ -158,7 +157,6 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   onAddBelow={() => onAddCell(speech.id)}
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
-                  columnHovered={isHovered}
                   onCellHover={onCellHover ? (entering) => onCellHover(entering ? speech.id : null, entering ? item.id : null, entering ? 'cell' : null) : null}
                   ref={el => {
                     if (el) {
@@ -176,7 +174,6 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
         })}
         <button className={styles.addCell} onClick={() => onAddCell(speech.id)}>+ add</button>
       </div>
-      <div className={styles.columnFill} />
 
       {drag && createPortal(
         <div
