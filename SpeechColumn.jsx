@@ -12,7 +12,6 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
   const startDrag = useCallback((e, itemId) => {
     if (e.button !== 0) return
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return
-    // Only drag from the grip handle
     if (!e.target.closest('[data-grip]')) return
     e.preventDefault()
 
