@@ -98,7 +98,7 @@
   display: flex;
   gap: 12px;
   padding: 16px 20px;
-  align-items: stretch;
+  align-items: flex-start;
   min-height: 100%;
   width: max-content;
   min-width: 100%;
