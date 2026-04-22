@@ -68,7 +68,7 @@ export default function App() {
     return () => window.removeEventListener('mousedown', onMouseDown)
   }, [])
 
-
+  // Sidebar resize
   const startSidebarResize = useCallback((e) => {
     e.preventDefault()
     resizingRef.current = true
@@ -268,11 +268,7 @@ export default function App() {
           className={styles.flowBoard}
           onClick={(e) => { if (e.target === flowBoardRef.current || e.target.classList.contains(styles.flowBoardInner)) { setPendingFrom([]); setCursor(null) } }}
         >
-          <div
-            className={styles.flowBoardInner}
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: zoom !== 1 ? `${100/zoom}%` : undefined }}
-          >
-          <svg ref={svgRef} className={styles.lineOverlay} style={{ width: '100%', height: '100%' }}>
+          <svg ref={svgRef} className={styles.lineOverlay} style={{ pointerEvents: 'none' }}>
             <defs>
               <marker id="arrowConn" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                 <path d="M1,1 L7,4 L1,7" fill="none" stroke="var(--accent-yellow)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -298,6 +294,7 @@ export default function App() {
                   strokeDasharray="5 4"
                   opacity={isHovered ? 0.7 : 0.4}
                   markerEnd="url(#arrowConn)"
+                  style={{ pointerEvents: 'none' }}
                 />
               )
             })}
@@ -311,6 +308,11 @@ export default function App() {
               return <path key={`draft-${src.cellId}`} d={d} fill="none" stroke="var(--accent-yellow)" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.35" markerEnd="url(#arrowDraft)" style={{ pointerEvents: 'none' }} />
             })}
           </svg>
+
+          <div
+            className={styles.flowBoardInner}
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: zoom !== 1 ? `${100/zoom}%` : undefined }}
+          >
 
           {activeFlow.speeches.map(speech => (
             <SpeechColumn
