@@ -56,6 +56,17 @@ export default function App() {
 
 
 
+  // Blur active textarea when clicking outside any cell
+  useEffect(() => {
+    const onMouseDown = (e) => {
+      const active = document.activeElement
+      if (active?.tagName !== 'TEXTAREA') return
+      if (!e.target.closest('[data-flowcell]')) active.blur()
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    return () => window.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
   // Sidebar resize
   const startSidebarResize = useCallback((e) => {
     e.preventDefault()
@@ -178,15 +189,15 @@ export default function App() {
     const svgRect = svgEl.getBoundingClientRect()
     const fromRect = fromEl.getBoundingClientRect()
     const toRect = toEl.getBoundingClientRect()
-    // Pick the correct edges depending on direction
     const goingRight = fromRect.left < toRect.left
     return {
-      x1: (goingRight ? fromRect.right : fromRect.left) - svgRect.left,
-      y1: fromRect.top + fromRect.height / 2 - svgRect.top,
-      x2: (goingRight ? toRect.left : toRect.right) - svgRect.left,
-      y2: toRect.top + toRect.height / 2 - svgRect.top,
+      x1: ((goingRight ? fromRect.right : fromRect.left) - svgRect.left) / zoom,
+      y1: (fromRect.top + fromRect.height / 2 - svgRect.top) / zoom,
+      x2: ((goingRight ? toRect.left : toRect.right) - svgRect.left) / zoom,
+      y2: (toRect.top + toRect.height / 2 - svgRect.top) / zoom,
     }
-  }, [])
+  }, [zoom])
+
   const getKnobCoords = useCallback((cellId) => {
     const el = cellRefsMap.current.get(cellId)
     const svgEl = svgRef.current
@@ -194,11 +205,11 @@ export default function App() {
     const svgRect = svgEl.getBoundingClientRect()
     const rect = el.getBoundingClientRect()
     return {
-      left: rect.left - svgRect.left,
-      right: rect.right - svgRect.left,
-      y: rect.top + rect.height / 2 - svgRect.top,
+      left: (rect.left - svgRect.left) / zoom,
+      right: (rect.right - svgRect.left) / zoom,
+      y: (rect.top + rect.height / 2 - svgRect.top) / zoom,
     }
-  }, [])
+  }, [zoom])
 
   if (!activeFlow) return null
 
