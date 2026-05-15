@@ -17,7 +17,6 @@ export default function App() {
   } = useDebateFlow()
 
   const [showHelp, setShowHelp] = useState(false)
-  const [zoom, setZoom] = useState(1)
   const [sidebarWidth, setSidebarWidth] = useState(220)
   const resizingRef = useRef(false)
 
@@ -191,12 +190,12 @@ export default function App() {
     const toRect = toEl.getBoundingClientRect()
     const goingRight = fromRect.left < toRect.left
     return {
-      x1: ((goingRight ? fromRect.right : fromRect.left) - svgRect.left) / zoom,
-      y1: (fromRect.top + fromRect.height / 2 - svgRect.top) / zoom,
-      x2: ((goingRight ? toRect.left : toRect.right) - svgRect.left) / zoom,
-      y2: (toRect.top + toRect.height / 2 - svgRect.top) / zoom,
+      x1: (goingRight ? fromRect.right : fromRect.left) - svgRect.left,
+      y1: fromRect.top + fromRect.height / 2 - svgRect.top,
+      x2: (goingRight ? toRect.left : toRect.right) - svgRect.left,
+      y2: toRect.top + toRect.height / 2 - svgRect.top,
     }
-  }, [zoom])
+  }, [])
 
   const getKnobCoords = useCallback((cellId) => {
     const el = cellRefsMap.current.get(cellId)
@@ -205,11 +204,11 @@ export default function App() {
     const svgRect = svgEl.getBoundingClientRect()
     const rect = el.getBoundingClientRect()
     return {
-      left: (rect.left - svgRect.left) / zoom,
-      right: (rect.right - svgRect.left) / zoom,
-      y: (rect.top + rect.height / 2 - svgRect.top) / zoom,
+      left: rect.left - svgRect.left,
+      right: rect.right - svgRect.left,
+      y: rect.top + rect.height / 2 - svgRect.top,
     }
-  }, [zoom])
+  }, [])
 
   if (!activeFlow) return null
 
@@ -252,12 +251,6 @@ export default function App() {
             </span>
           </div>
           <div className={styles.viewToggle}>
-            <div className={styles.zoomControls}>
-              <button className={styles.zoomBtn} onClick={() => setZoom(z => Math.max(0.4, +(z - 0.1).toFixed(1)))} title="Zoom out">−</button>
-              <span className={styles.zoomLevel}>{Math.round(zoom * 100)}%</span>
-              <button className={styles.zoomBtn} onClick={() => setZoom(z => Math.min(2, +(z + 0.1).toFixed(1)))} title="Zoom in">+</button>
-              <button className={styles.zoomBtn} onClick={() => setZoom(1)} title="Reset zoom" style={{fontSize:10}}>↺</button>
-            </div>
             <button className={styles.helpBtn} onClick={() => setShowHelp(!showHelp)} title="Help">?</button>
           </div>
         </div>
@@ -269,7 +262,6 @@ export default function App() {
         >
           <div
             className={styles.flowBoardInner}
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: zoom !== 1 ? `${100/zoom}%` : undefined }}
           >
           <svg ref={svgRef} className={styles.lineOverlay} style={{ width: '100%', height: '100%' }}>
             <defs>
