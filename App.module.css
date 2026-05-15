@@ -53,40 +53,6 @@
   flex-shrink: 0;
 }
 
-.zoomControls {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2px;
-}
-
-.zoomBtn {
-  padding: 2px 8px;
-  font-size: 14px;
-  font-family: var(--font-mono);
-  color: var(--text-2);
-  border-radius: 3px;
-  transition: all 0.15s;
-  line-height: 1;
-}
-
-.zoomBtn:hover {
-  color: var(--text-0);
-  background: var(--bg-3);
-}
-
-.zoomLevel {
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--text-3);
-  padding: 0 4px;
-  min-width: 32px;
-  text-align: center;
-}
-
 /* Flow board: scrolls both directions, columns grow to content height */
 .flowBoard {
   flex: 1;
