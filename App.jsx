@@ -6,10 +6,10 @@ import styles from './App.module.css'
 
 export default function App() {
   const {
-    flows, activeFlow, activeFlowId, activeSpeechId,
-    setActiveFlowId, setActiveSpeechId,
+    flows, activeFlow, activeFlowId,
+    setActiveFlowId,
     addFlow, deleteFlow, renameFlow,
-    updateCell, addCell, deleteCell,
+    updateCell, addCell, addCellAfter, deleteCell,
     addEmptySpace, deleteEmptySpace,
     reorderItems,
     addConnection, removeConnection,
@@ -19,6 +19,14 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(220)
   const resizingRef = useRef(false)
+  const [focusCellId, setFocusCellId] = useState(null)
+
+  // Pressing Enter in a cell creates a new cell directly below it and
+  // focuses that new cell.
+  const handleAddCellAfter = useCallback((speechId, cellId) => {
+    const newId = addCellAfter(speechId, cellId)
+    setFocusCellId(newId)
+  }, [addCellAfter])
 
   const deleteCellAndRedraw = useCallback((speechId, cellId) => {
     deleteCell(speechId, cellId)
@@ -137,7 +145,7 @@ export default function App() {
       if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         const hovered = hoveredCellRef.current
-        if (hovered) handleKnobClick(hovered.speechId, hovered.cellId)
+        if (hovered) handleConnectAction(hovered.speechId, hovered.cellId)
       }
       if (e.key === 'x' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
@@ -158,7 +166,7 @@ export default function App() {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('keydown', onKey) }
   }, [pendingFrom.length, hoveredSpeechId, addCell, addEmptySpace, deleteEmptySpace, removeConnection, deleteCellAndRedraw])
 
-  const handleKnobClick = useCallback((speechId, cellId) => {
+  const handleConnectAction = useCallback((speechId, cellId) => {
     if (pendingFrom.length === 0) {
       setPendingFrom([{ speechId, cellId }])
       return
@@ -197,7 +205,7 @@ export default function App() {
     }
   }, [])
 
-  const getKnobCoords = useCallback((cellId) => {
+  const getCellEdgeCoords = useCallback((cellId) => {
     const el = cellRefsMap.current.get(cellId)
     const svgEl = svgRef.current
     if (!el || !svgEl) return null
@@ -293,7 +301,7 @@ export default function App() {
               )
             })}
             {isPending && cursor && pendingFrom.map(src => {
-              const from = getKnobCoords(src.cellId)
+              const from = getCellEdgeCoords(src.cellId)
               if (!from) return null
               const goingRight = cursor.x > from.right
               const fromX = goingRight ? from.right : from.left
@@ -309,12 +317,14 @@ export default function App() {
               speech={speech}
               onUpdateCell={updateCell}
               onAddCell={addCell}
+              onAddCellAfter={handleAddCellAfter}
               onDeleteCell={deleteCellAndRedraw}
               onAddEmptySpace={addEmptySpace}
               onDeleteEmptySpace={deleteEmptySpace}
               onReorderItems={reorderItems}
               pendingCellIds={pendingCellIds}
-              onKnobClick={handleKnobClick}
+              focusCellId={focusCellId}
+              onFocusHandled={() => setFocusCellId(null)}
               cellRefsMap={cellRefsMap}
               onHover={setHoveredSpeechId}
               onCellHover={(speechId, cellId, type) => { hoveredCellRef.current = speechId && cellId ? { speechId, cellId, type } : null; setHoveredCellType(speechId ? type : null) }}
@@ -328,8 +338,8 @@ export default function App() {
         {isPending && (
           <div className={styles.drawHint}>
             {pendingFrom.length === 1
-              ? 'click or press c on another cell to connect · x to delete hovered · Esc to cancel'
-              : `${pendingFrom.length} selected · click or press c in another speech · Esc to cancel`}
+              ? 'press c on another cell to connect · x to delete hovered · Esc to cancel'
+              : `${pendingFrom.length} selected · press c in another speech · Esc to cancel`}
           </div>
         )}
 
@@ -352,9 +362,10 @@ export default function App() {
               <div className={styles.helpSection}>
                 <div className={styles.shortcut}><kbd>a</kbd><span>Add argument to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>b</kbd><span>Add spacer to hovered column</span></div>
-                <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target)</span></div>
+                <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target cell)</span></div>
                 <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell or connection</span></div>
-                <div className={styles.shortcut}><kbd>Ctrl+Enter</kbd><span>New argument below (in cell)</span></div>
+                <div className={styles.shortcut}><kbd>Enter</kbd><span>New argument below current cell (in cell)</span></div>
+                <div className={styles.shortcut}><kbd>Shift+Enter</kbd><span>New line within cell</span></div>
                 <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
