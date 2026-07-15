@@ -72,9 +72,11 @@ export const FlowCell = forwardRef(function FlowCell(
       onAddBelow()
       return
     }
-    // Backspace/Delete with nothing left to erase removes the cell itself,
-    // instead of doing nothing.
-    if ((e.key === 'Backspace' || e.key === 'Delete') && cell.content.trim() === '') {
+    // Backspace/Delete with nothing left to erase removes the cell itself.
+    // Checking against '' (not a trimmed/whitespace check) means blank lines
+    // get erased one at a time first, like normal textarea backspace — the
+    // cell itself only goes away once there's truly nothing left in it.
+    if ((e.key === 'Backspace' || e.key === 'Delete') && cell.content === '') {
       e.preventDefault()
       onDelete()
     }
@@ -98,6 +100,9 @@ export const FlowCell = forwardRef(function FlowCell(
       ref={ref}
       className={`${styles.cell} ${styles[side]} ${isSelected ? styles.selected : ''}`}
       data-flowcell
+      data-type="cell"
+      data-speech-id={speechId}
+      data-cell-id={cell.id}
       style={tag ? { borderLeftColor: tag.color } : undefined}
       onMouseEnter={() => { setHovered(true); onCellHover && onCellHover(true) }}
       onMouseLeave={() => { setHovered(false); onCellHover && onCellHover(false) }}
