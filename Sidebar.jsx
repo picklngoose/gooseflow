@@ -64,7 +64,11 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
               <div className={styles.flowActions}>
                 <button className={styles.flowAction} onClick={() => startEdit(flow)} title="Rename">✎</button>
                 {flows.length > 1 && (
-                  <button className={`${styles.flowAction} ${styles.danger}`} onClick={() => onDeleteFlow(flow.id)} title="Delete">×</button>
+                  <button
+                    className={`${styles.flowAction} ${styles.danger}`}
+                    onClick={() => { if (confirm(`Delete "${flow.name}"?`)) onDeleteFlow(flow.id) }}
+                    title="Delete"
+                  >×</button>
                 )}
               </div>
             </div>
