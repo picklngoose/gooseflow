@@ -45,6 +45,7 @@ export default function App() {
   const [hoveredCellType, setHoveredCellType] = useState(null) // 'cell' | 'space' | null — triggers render
 
   const cellRefsMap = useRef(new Map())
+  const mousePosRef = useRef(null) // { x, y } — raw client coords, for rehover after a keyboard delete
   const flowBoardRef = useRef(null)
   const svgRef = useRef(null)
   const connPathsRef = useRef(new Map()) // conn.id → <path> DOM element
@@ -96,6 +97,7 @@ export default function App() {
 
   useEffect(() => {
     const onMove = (e) => {
+      mousePosRef.current = { x: e.clientX, y: e.clientY }
       // Update draft line cursor
       if (pendingFrom.length > 0) {
         const svgEl = svgRef.current
@@ -131,6 +133,30 @@ export default function App() {
       hoveredConnRef.current = bestId
       setHighlightConnId(prev => prev === bestId ? prev : bestId)
     }
+    // After deleting a hovered cell/space via keyboard, the DOM node under the
+    // (stationary) mouse cursor changes as remaining cells shift up to fill
+    // the gap — but browsers don't fire mouseenter/mouseleave just because
+    // the DOM moved under an unmoved pointer. Without this, hoveredCellRef
+    // stays pointed at the now-deleted cell, so a second x/Delete press
+    // silently no-ops until the mouse actually moves. Re-detect what's
+    // really under the cursor once the deletion's DOM update has painted.
+    const rehoverAtMouse = () => {
+      const pos = mousePosRef.current
+      if (!pos) return
+      const el = document.elementFromPoint(pos.x, pos.y)
+      const target = el && el.closest ? el.closest('[data-flowcell]') : null
+      if (target) {
+        const speechId = target.dataset.speechId
+        const cellId = target.dataset.cellId
+        const type = target.dataset.type || 'cell'
+        hoveredCellRef.current = { speechId, cellId, type }
+        setHoveredCellType(type)
+        setHoveredSpeechId(speechId)
+      } else {
+        hoveredCellRef.current = null
+        setHoveredCellType(null)
+      }
+    }
     const onKey = (e) => {
       if (e.key === 'Escape') { setPendingFrom([]); setCursor(null) }
       if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return
@@ -157,6 +183,7 @@ export default function App() {
           if (hovered) {
             if (hovered.type === 'space') deleteEmptySpace(hovered.speechId, hovered.cellId)
             else deleteCellAndRedraw(hovered.speechId, hovered.cellId)
+            requestAnimationFrame(rehoverAtMouse)
           }
         }
       }
