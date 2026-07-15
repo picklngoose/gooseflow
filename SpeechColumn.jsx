@@ -144,6 +144,10 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onAddCellAfter, 
               {item.type === 'space' ? (
                 <div
                   className={styles.emptySpace}
+                  data-flowcell
+                  data-speech-id={speech.id}
+                  data-cell-id={item.id}
+                  data-type="space"
                   onMouseEnter={() => onCellHover && onCellHover(speech.id, item.id, 'space')}
                   onMouseLeave={() => onCellHover && onCellHover(null, null, null)}
                 />
@@ -153,7 +157,25 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onAddCellAfter, 
                   speechId={speech.id}
                   side={speech.side}
                   onUpdate={(updates) => onUpdateCell(speech.id, item.id, updates)}
-                  onDelete={() => onDeleteCell(speech.id, item.id)}
+                  onDelete={() => {
+                    const idx = items.findIndex(it => it.id === item.id)
+                    onDeleteCell(speech.id, item.id)
+                    // Move focus to the previous cell (if any) so repeated
+                    // Backspace can keep deleting empty cells in a chain,
+                    // instead of losing focus after just one.
+                    const prevCell = [...items.slice(0, idx)].reverse().find(it => it.type === 'cell')
+                    if (prevCell) {
+                      requestAnimationFrame(() => {
+                        const el = cellRefsMap.current.get(prevCell.id)
+                        const textarea = el && el.querySelector ? el.querySelector('textarea') : null
+                        if (textarea) {
+                          textarea.focus()
+                          const len = textarea.value.length
+                          textarea.setSelectionRange(len, len)
+                        }
+                      })
+                    }
+                  }}
                   onAddBelow={() => onAddCellAfter(speech.id, item.id)}
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
                   shouldFocus={item.id === focusCellId}
