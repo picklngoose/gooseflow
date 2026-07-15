@@ -4,14 +4,14 @@ let _uid = 0
 const uid = () => `${Date.now()}-${++_uid}`
 
 export const SPEECH_ORDER = [
-  { id: '1ac', label: '1AC', side: 'aff', type: 'constructive', time: 480, description: '1st Affirmative Constructive' },
-  { id: '1nc', label: '1NC', side: 'neg', type: 'constructive', time: 480, description: '1st Negative Constructive' },
-  { id: '2ac', label: '2AC', side: 'aff', type: 'constructive', time: 480, description: '2nd Affirmative Constructive' },
-  { id: '2nc', label: '2NC', side: 'neg', type: 'constructive', time: 480, description: '2nd Negative Constructive' },
-  { id: '1nr', label: '1NR', side: 'neg', type: 'rebuttal',     time: 300, description: '1st Negative Rebuttal' },
-  { id: '1ar', label: '1AR', side: 'aff', type: 'rebuttal',     time: 300, description: '1st Affirmative Rebuttal' },
-  { id: '2nr', label: '2NR', side: 'neg', type: 'rebuttal',     time: 300, description: '2nd Negative Rebuttal' },
-  { id: '2ar', label: '2AR', side: 'aff', type: 'rebuttal',     time: 300, description: '2nd Affirmative Rebuttal' },
+  { id: '1ac', label: '1AC', side: 'aff', type: 'constructive', description: '1st Affirmative Constructive' },
+  { id: '1nc', label: '1NC', side: 'neg', type: 'constructive', description: '1st Negative Constructive' },
+  { id: '2ac', label: '2AC', side: 'aff', type: 'constructive', description: '2nd Affirmative Constructive' },
+  { id: '2nc', label: '2NC', side: 'neg', type: 'constructive', description: '2nd Negative Constructive' },
+  { id: '1nr', label: '1NR', side: 'neg', type: 'rebuttal',     description: '1st Negative Rebuttal' },
+  { id: '1ar', label: '1AR', side: 'aff', type: 'rebuttal',     description: '1st Affirmative Rebuttal' },
+  { id: '2nr', label: '2NR', side: 'neg', type: 'rebuttal',     description: '2nd Negative Rebuttal' },
+  { id: '2ar', label: '2AR', side: 'aff', type: 'rebuttal',     description: '2nd Affirmative Rebuttal' },
 ]
 
 const VALID_SPEECH_IDS = new Set(SPEECH_ORDER.map(s => s.id))
@@ -81,6 +81,13 @@ const persist = (flows, activeId) => {
   } catch {}
 }
 
+// Escapes text that gets interpolated into the exportPDF HTML string, since
+// flow names/content are free-typed user text and exportPDF renders it via
+// document.write into a real window (otherwise this is an HTML/script
+// injection point — e.g. a cell containing "<img src=x onerror=...>").
+const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, ch => ESCAPE_MAP[ch])
+
 // Build a cell-label map and connection summary for exports
 const buildExportMeta = (flow) => {
   const cellLabel = {} // cellId -> "1AC #2"
@@ -103,22 +110,55 @@ const buildExportMeta = (flow) => {
 export function useDebateFlow() {
   const [flows, setFlows] = useState(load)
   const [activeFlowId, setActiveFlowId] = useState(loadActiveId)
-  const [activeSpeechId, setActiveSpeechId] = useState('1ac')
   const undoStack = useRef([]) // stores previous flow arrays
+  const lastCheckpointRef = useRef(0) // timestamp of last undo-stack push
+  const pendingPersistRef = useRef(null) // { timerId, run } — debounced localStorage write
 
   const updateFlows = useCallback((updater) => {
     setFlows(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater
-      undoStack.current.push(prev)
-      if (undoStack.current.length > 50) undoStack.current.shift()
-      persist(next)
+
+      // Throttle undo checkpoints so rapid typing doesn't push a stack entry
+      // per keystroke — coalesce anything within 800ms into one checkpoint.
+      const now = Date.now()
+      if (now - lastCheckpointRef.current > 800) {
+        undoStack.current.push(prev)
+        if (undoStack.current.length > 50) undoStack.current.shift()
+        lastCheckpointRef.current = now
+      }
+
+      // Debounce the localStorage write itself — writing on every keystroke
+      // is a synchronous, blocking call. Coalesce into one write ~400ms
+      // after typing settles, but always flush immediately on unload/unmount.
+      if (pendingPersistRef.current) clearTimeout(pendingPersistRef.current.timerId)
+      const run = () => { persist(next); pendingPersistRef.current = null }
+      pendingPersistRef.current = { timerId: setTimeout(run, 400), run }
+
       return next
     })
+  }, [])
+
+  // Make sure a pending debounced write is never lost.
+  useEffect(() => {
+    const flushNow = () => {
+      if (pendingPersistRef.current) {
+        clearTimeout(pendingPersistRef.current.timerId)
+        pendingPersistRef.current.run()
+      }
+    }
+    window.addEventListener('beforeunload', flushNow)
+    return () => { window.removeEventListener('beforeunload', flushNow); flushNow() }
   }, [])
 
   const undo = useCallback(() => {
     const prev = undoStack.current.pop()
     if (prev) {
+      // Cancel any debounced write in flight — otherwise it could fire a
+      // moment later and silently overwrite the state we just reverted to.
+      if (pendingPersistRef.current) {
+        clearTimeout(pendingPersistRef.current.timerId)
+        pendingPersistRef.current = null
+      }
       setFlows(prev)
       persist(prev)
     }
@@ -181,6 +221,21 @@ export function useDebateFlow() {
     updateSpeechItems(speechId, items => [...items, createCell(`${speechId}-${uid()}`)])
   }, [updateSpeechItems])
 
+  // Inserts a new cell directly after cellId (used by Enter-in-cell) and
+  // returns the new cell's id so the caller can focus it.
+  const addCellAfter = useCallback((speechId, cellId) => {
+    const newId = `${speechId}-${uid()}`
+    updateSpeechItems(speechId, items => {
+      const idx = items.findIndex(it => it.id === cellId)
+      const newCell = { id: newId, type: 'cell', content: '' }
+      if (idx === -1) return [...items, newCell]
+      const next = [...items]
+      next.splice(idx + 1, 0, newCell)
+      return next
+    })
+    return newId
+  }, [updateSpeechItems])
+
   const deleteCell = useCallback((speechId, cellId) => {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowIdRef.current) return f
@@ -198,7 +253,7 @@ export function useDebateFlow() {
         })
       }
     }))
-  }, [activeFlowId, updateFlows])
+  }, [updateFlows])
 
   const addEmptySpace = useCallback((speechId) => {
     updateSpeechItems(speechId, items => [...items, createSpace(`${speechId}-space-${uid()}`)])
@@ -218,14 +273,14 @@ export function useDebateFlow() {
       if (f.connections.some(c => c.fromCellId === fromCellId && c.toCellId === toCellId)) return f
       return { ...f, connections: [...f.connections, { id: `conn-${uid()}`, fromCellId, toCellId }] }
     }))
-  }, [activeFlowId, updateFlows])
+  }, [updateFlows])
 
   const removeConnection = useCallback((connId) => {
     updateFlows(prev => prev.map(f => {
       if (f.id !== activeFlowIdRef.current) return f
       return { ...f, connections: f.connections.filter(c => c.id !== connId) }
     }))
-  }, [activeFlowId, updateFlows])
+  }, [updateFlows])
 
   // --- Text export (filled cells only, with connections) ---
   const buildTextExport = useCallback((flow) => {
@@ -251,7 +306,8 @@ export function useDebateFlow() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${activeFlow.name.replace(/\s+/g, '-').toLowerCase()}-flow.txt`
+    const safeName = activeFlow.name.trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, '').replace(/\s+/g, '-').toLowerCase() || 'flow'
+    a.download = `${safeName}-flow.txt`
     a.click()
     URL.revokeObjectURL(url)
   }, [activeFlow, buildTextExport])
@@ -283,8 +339,8 @@ export function useDebateFlow() {
               ...(toMap[cell.id]   || []).map(l => `← ${l}`),
             ]
             return `<div class="cell ${speech.side}">
-              <div class="cell-content">${cell.content.replace(/\n/g, '<br>')}</div>
-              ${conns.length ? `<div class="cell-conns">${conns.join(' · ')}</div>` : ''}
+              <div class="cell-content">${escapeHtml(cell.content).replace(/\n/g, '<br>')}</div>
+              ${conns.length ? `<div class="cell-conns">${conns.map(escapeHtml).join(' · ')}</div>` : ''}
             </div>`
           }).join('')
       return `<div class="col">
@@ -293,8 +349,9 @@ export function useDebateFlow() {
       </div>`
     }).join('')
 
+    const safeFlowName = escapeHtml(activeFlow.name)
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>gooseflow — ${activeFlow.name}</title>
+    <title>gooseflow — ${safeFlowName}</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: 'IBM Plex Mono', monospace; font-size: 9px; background: #fff; color: #111; }
@@ -315,7 +372,7 @@ export function useDebateFlow() {
       .empty { color: #ccc; font-style: italic; font-size: 8px; padding: 4px; }
       @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style></head><body>
-    <h1>gooseflow — ${activeFlow.name}</h1>
+    <h1>gooseflow — ${safeFlowName}</h1>
     <div class="meta">Exported ${new Date().toLocaleString()}</div>
     <div class="board">${cols}</div>
     </body></html>`
@@ -327,11 +384,10 @@ export function useDebateFlow() {
   }, [activeFlow])
 
   return {
-    flows, activeFlow, activeFlowId, activeSpeechId,
+    flows, activeFlow, activeFlowId,
     setActiveFlowId: (id) => { setActiveFlowId(id); persist(null, id) },
-    setActiveSpeechId,
     addFlow, deleteFlow, renameFlow,
-    updateCell, addCell, deleteCell,
+    updateCell, addCell, addCellAfter, deleteCell,
     addEmptySpace, deleteEmptySpace,
     reorderItems,
     addConnection, removeConnection,
