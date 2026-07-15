@@ -37,7 +37,7 @@ export function Sidebar({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelete
       <div className={styles.section}>
         <div className={styles.sectionLabel}>Speech Timers</div>
         <div className={styles.timerStack}>
-          <PrepTimer side="aff" label="Constructive" duration={480} />
+          <PrepTimer side="neg" label="Constructive" duration={480} />
           <PrepTimer side="neg" label="Rebuttal" duration={300} />
         </div>
       </div>
