@@ -70,8 +70,15 @@ export const FlowCell = forwardRef(function FlowCell(
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       onAddBelow()
+      return
     }
-  }, [onAddBelow])
+    // Backspace/Delete with nothing left to erase removes the cell itself,
+    // instead of doing nothing.
+    if ((e.key === 'Backspace' || e.key === 'Delete') && cell.content.trim() === '') {
+      e.preventDefault()
+      onDelete()
+    }
+  }, [onAddBelow, onDelete, cell.content])
 
   const renderOverlay = () => {
     if (!tag) return null
