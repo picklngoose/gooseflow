@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { FlowCell } from './FlowCell'
 import styles from './SpeechColumn.module.css'
 
-export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, onKnobClick, cellRefsMap, onHover, onCellHover, isHovered, onDragMove }) {
+export function SpeechColumn({ speech, onUpdateCell, onAddCell, onAddCellAfter, onDeleteCell, onAddEmptySpace, onDeleteEmptySpace, onReorderItems, pendingCellIds, focusCellId, onFocusHandled, cellRefsMap, onHover, onCellHover, isHovered, onDragMove }) {
   const items = speech.items || []
   const [drag, setDrag] = useState(null)
   const itemRefs = useRef({})
@@ -154,9 +154,10 @@ export function SpeechColumn({ speech, onUpdateCell, onAddCell, onDeleteCell, on
                   side={speech.side}
                   onUpdate={(updates) => onUpdateCell(speech.id, item.id, updates)}
                   onDelete={() => onDeleteCell(speech.id, item.id)}
-                  onAddBelow={() => onAddCell(speech.id)}
+                  onAddBelow={() => onAddCellAfter(speech.id, item.id)}
                   isSelected={pendingCellIds ? pendingCellIds.has(item.id) : false}
-                  onKnobClick={onKnobClick ? () => onKnobClick(speech.id, item.id) : null}
+                  shouldFocus={item.id === focusCellId}
+                  onFocusHandled={onFocusHandled}
                   onCellHover={onCellHover ? (entering) => onCellHover(entering ? speech.id : null, entering ? item.id : null, entering ? 'cell' : null) : null}
                   ref={el => {
                     if (el) {
