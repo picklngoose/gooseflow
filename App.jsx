@@ -147,7 +147,7 @@ export default function App() {
         const hovered = hoveredCellRef.current
         if (hovered) handleConnectAction(hovered.speechId, hovered.cellId)
       }
-      if (e.key === 'x' && !e.ctrlKey && !e.metaKey) {
+      if ((e.key === 'x' || e.key === 'Delete') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         const connId = hoveredConnRef.current
         if (connId) {
@@ -338,14 +338,14 @@ export default function App() {
         {isPending && (
           <div className={styles.drawHint}>
             {pendingFrom.length === 1
-              ? 'press c on another cell to connect · x to delete hovered · Esc to cancel'
+              ? 'press c on another cell to connect · x/Delete to delete hovered · Esc to cancel'
               : `${pendingFrom.length} selected · press c in another speech · Esc to cancel`}
           </div>
         )}
 
         {!isPending && hoveredCellType === 'cell' && (
           <div className={styles.cellHint}>
-            c · connect &nbsp;·&nbsp; x · delete &nbsp;·&nbsp; a · add below &nbsp;·&nbsp; b · blank space
+            c · connect &nbsp;·&nbsp; x/Delete · delete &nbsp;·&nbsp; a · add below &nbsp;·&nbsp; b · blank space
           </div>
         )}
 
@@ -363,9 +363,10 @@ export default function App() {
                 <div className={styles.shortcut}><kbd>a</kbd><span>Add argument to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>b</kbd><span>Add spacer to hovered column</span></div>
                 <div className={styles.shortcut}><kbd>c</kbd><span>Connect hovered cell (press again on target cell)</span></div>
-                <div className={styles.shortcut}><kbd>x</kbd><span>Delete hovered cell or connection</span></div>
+                <div className={styles.shortcut}><kbd>x</kbd> / <kbd>Delete</kbd><span>Delete hovered cell or connection</span></div>
                 <div className={styles.shortcut}><kbd>Enter</kbd><span>New argument below current cell (in cell)</span></div>
                 <div className={styles.shortcut}><kbd>Shift+Enter</kbd><span>New line within cell</span></div>
+                <div className={styles.shortcut}><kbd>Backspace</kbd> / <kbd>Delete</kbd><span>Delete an empty cell (in cell)</span></div>
                 <div className={styles.shortcut}><kbd>Drag</kbd><span>Reorder items within column</span></div>
                 <div className={styles.shortcut}><kbd>Esc</kbd><span>Cancel connection</span></div>
               </div>
