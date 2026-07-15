@@ -33,13 +33,20 @@ function detectTag(content) {
 }
 
 export const FlowCell = forwardRef(function FlowCell(
-  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, onKnobClick, onCellHover },
+  { cell, speechId, side, onUpdate, onDelete, onAddBelow, isSelected, shouldFocus, onFocusHandled, onCellHover },
   ref
 ) {
   const textareaRef = useRef(null)
   const [hovered, setHovered] = useState(false)
 
   const tag = detectTag(cell.content)
+
+  // Focus a freshly-created cell (e.g. after pressing Enter in the cell above).
+  useEffect(() => {
+    if (!shouldFocus) return
+    textareaRef.current?.focus()
+    onFocusHandled && onFocusHandled()
+  }, [shouldFocus, onFocusHandled])
 
   // Resize textarea to fit content on mount and whenever content changes
   useEffect(() => {
@@ -57,7 +64,10 @@ export const FlowCell = forwardRef(function FlowCell(
   }, [onUpdate])
 
   const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    // Enter alone (including with Ctrl/Cmd held) creates a new cell directly
+    // below and focuses it. Shift+Enter falls through to the textarea's
+    // default behavior and inserts a newline within the current cell.
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       onAddBelow()
     }
